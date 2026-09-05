@@ -56,6 +56,33 @@ rompen al escribir código:
    negativo.
 10. **Toda la seguridad vive en RLS.** El frontend es manipulable.
 
+## Modelo de permisos (RLS)
+
+Toda la seguridad vive en políticas RLS. El cliente no decide nada.
+
+| Área | Miembro | Admin |
+| --- | --- | --- |
+| Gastos, listas, porcentajes, períodos | lee | lee y escribe |
+| Registrar abonos | — | sí |
+| Ver abonos | los suyos | todos los de la casa |
+| Saldos y arrastres | el suyo | todos los de la casa |
+| Ledger de cargos | lee (es el reparto compartido) | lee |
+| Lista de compras, productos, tags, precios reales | todo | todo |
+| Crear tiendas | — | sí |
+
+`ledger_entries`, `payments`, `payment_allocations` y `period_carryovers` no
+tienen política de `UPDATE` ni `DELETE`: son append-only para todos, admin
+incluido. El trigger `forbid_mutation` es la segunda capa.
+
+Los helpers de RLS viven en el esquema **`app`**, no en `public`. PostgREST
+publica todo lo que hay en `public` como `/rest/v1/rpc/<función>`, y un helper
+como `list_house(uuid)` expuesto es un oráculo. Si agregás un helper nuevo,
+va en `app`.
+
+Las vistas `membership_balances` y `period_balances` usan `security_invoker` y
+además se filtran a lo que cada quien puede ver. Sin ese filtro un miembro vería
+los cargos de otros pero no sus abonos, y el saldo ajeno saldría inflado.
+
 ## Vocabulario
 
 - **cargo** — lo que te tocó de los gastos del mes.

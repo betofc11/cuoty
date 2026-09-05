@@ -1082,13 +1082,6 @@ export type Database = {
       current_actor: { Args: never; Returns: string }
       generate_join_code: { Args: never; Returns: string }
       house_residue_admin: { Args: { p_house_id: string }; Returns: string }
-      membership_balance: {
-        Args: {
-          p_currency: Database["public"]["Enums"]["currency_code"]
-          p_membership_id: string
-        }
-        Returns: number
-      }
       split_expense_amount: {
         Args: {
           p_amount: number
@@ -1101,7 +1094,6 @@ export type Database = {
           share: number
         }[]
       }
-      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       confidence_level: "alta" | "media" | "baja"
