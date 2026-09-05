@@ -1,0 +1,83 @@
+@import 'tailwindcss';
+
+/* ── Tokens ────────────────────────────────────────────────────────────────
+   Sacados del prototipo. El teal de dólares no venía con hex en el
+   prototipo: lo elegí para que contraste con la terracota sin competir.
+   -------------------------------------------------------------------- */
+
+:root {
+  --fondo: #efe9e1;
+  --superficie: #faf7f3;
+  --superficie-alta: #fffdfa;
+  --borde: #e0d7cb;
+  --borde-suave: #eee4d8;
+
+  --tinta: #2a231d;
+  --tinta-suave: #6b5f52;
+
+  /* Terracota: primario de marca Y color de colones. */
+  --crc: #b4552e;
+  --crc-tenue: #f6e7de;
+
+  /* Teal: color de dólares. Nunca se mezcla con el de colones. */
+  --usd: #1f6f6a;
+  --usd-tenue: #dfeceb;
+
+  --peligro: #a33526;
+  --ok: #2f6d42;
+}
+
+.dark {
+  --fondo: #1a1613;
+  --superficie: #221d19;
+  --superficie-alta: #2b2521;
+  --borde: #3a322c;
+  --borde-suave: #322b26;
+
+  --tinta: #f2ece4;
+  --tinta-suave: #a89a8b;
+
+  --crc: #d97a4e;
+  --crc-tenue: #3a2419;
+
+  --usd: #4fa39c;
+  --usd-tenue: #16302e;
+
+  --peligro: #e0705f;
+  --ok: #6bbf85;
+}
+
+@theme inline {
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-alta: var(--superficie-alta);
+  --color-borde: var(--borde);
+  --color-borde-suave: var(--borde-suave);
+  --color-tinta: var(--tinta);
+  --color-tinta-suave: var(--tinta-suave);
+  --color-crc: var(--crc);
+  --color-crc-tenue: var(--crc-tenue);
+  --color-usd: var(--usd);
+  --color-usd-tenue: var(--usd-tenue);
+  --color-peligro: var(--peligro);
+  --color-ok: var(--ok);
+
+  --font-display: Georgia, 'Times New Roman', serif;
+
+  /* Target táctil mínimo. Regla de UI: 48×48. */
+  --spacing-touch: 3rem;
+}
+
+@layer base {
+  html {
+    /* Tipografía base mínimo 16px. No bajar. */
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--fondo);
+    color: var(--tinta);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}

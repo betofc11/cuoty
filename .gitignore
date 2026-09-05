@@ -1,0 +1,36 @@
+# dependencias
+/node_modules
+/.pnp
+.pnp.*
+
+# next
+/.next/
+/out/
+next-env.d.ts
+
+# producción
+/build
+
+# entorno — NUNCA commitear llaves
+.env
+.env*.local
+
+# supabase
+/supabase/.branches
+/supabase/.temp
+
+# macos
+.DS_Store
+*.pem
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# typescript
+*.tsbuildinfo
+
+# herramientas locales de la sesión
+/.claude/launch.json
