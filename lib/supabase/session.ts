@@ -6,9 +6,14 @@ import type { Database } from '@/types/database'
 
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './env'
 
+/** Rutas que se pueden ver sin sesión. */
+function esPublica(pathname: string): boolean {
+  return pathname.startsWith('/login') || pathname.startsWith('/auth')
+}
+
 /**
- * Refresca el token de sesión en cada request y lo devuelve en la respuesta.
- * Sin esto, los Server Components ven sesiones vencidas.
+ * Refresca el token de sesión en cada request y manda al login a quien no la
+ * tenga. Sin esto, los Server Components ven sesiones vencidas.
  *
  * Ojo: no metas lógica entre `createServerClient` y `getUser()`. Un bug ahí
  * produce cierres de sesión intermitentes y muy difíciles de reproducir.
@@ -33,7 +38,22 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     },
   })
 
-  await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user && !esPublica(request.nextUrl.pathname)) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.search = ''
+
+    const redireccion = NextResponse.redirect(url)
+    // Arrastrar las cookies recién refrescadas, o la sesión se pierde acá.
+    for (const cookie of response.cookies.getAll()) {
+      redireccion.cookies.set(cookie)
+    }
+    return redireccion
+  }
 
   return response
 }

@@ -1079,9 +1079,29 @@ export type Database = {
     Functions: {
       allocate_payment: { Args: { p_payment_id: string }; Returns: undefined }
       cr_month: { Args: { p_at?: string }; Returns: string }
+      create_house: {
+        Args: { p_name: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          id: string
+          join_code: string
+          name: string
+        }
+      }
       current_actor: { Args: never; Returns: string }
       generate_join_code: { Args: never; Returns: string }
       house_residue_admin: { Args: { p_house_id: string }; Returns: string }
+      join_house: {
+        Args: { p_code: string }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          id: string
+          join_code: string
+          name: string
+        }
+      }
       split_expense_amount: {
         Args: {
           p_amount: number

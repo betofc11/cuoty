@@ -27,6 +27,29 @@
   --ok: #2f6d42;
 }
 
+/* El toggle manual llega en la fase 10; por ahora seguimos al sistema. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --fondo: #1a1613;
+    --superficie: #221d19;
+    --superficie-alta: #2b2521;
+    --borde: #3a322c;
+    --borde-suave: #322b26;
+
+    --tinta: #f2ece4;
+    --tinta-suave: #a89a8b;
+
+    --crc: #d97a4e;
+    --crc-tenue: #3a2419;
+
+    --usd: #4fa39c;
+    --usd-tenue: #16302e;
+
+    --peligro: #e0705f;
+    --ok: #6bbf85;
+  }
+}
+
 .dark {
   --fondo: #1a1613;
   --superficie: #221d19;

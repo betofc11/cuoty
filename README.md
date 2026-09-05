@@ -18,6 +18,17 @@ npm run dev
 | `npm run build`    | Build de producción             |
 | `npm run typecheck`| `tsc --noEmit`                  |
 
+## Configuración en el panel de Supabase
+
+Dos cosas no se pueden hacer por migración:
+
+- **Redirect URLs** (Authentication → URL Configuration): agregá
+  `http://localhost:3000/auth/callback` y el dominio de producción. Sin esto el
+  enlace del correo rebota.
+- **Google** (Authentication → Providers): pide un client ID y un secret de
+  Google Cloud. Mientras esté apagado, el botón muestra «Google todavía no está
+  habilitado en este proyecto».
+
 ## Estructura
 
 ```
