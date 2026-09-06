@@ -35,7 +35,8 @@ export async function agregarItem(
   _prev: EstadoCompras,
   formData: FormData,
 ): Promise<EstadoCompras> {
-  const nombre = String(formData.get('nombre') ?? '').trim()
+  // `producto`, no `nombre`: ver el comentario en `agregar.tsx`.
+  const nombre = String(formData.get('producto') ?? '').trim()
   if (!nombre) return fallo('Escribí qué hay que comprar.')
   if (nombre.length > 80) return fallo('El nombre es muy largo (máximo 80).')
 
@@ -159,7 +160,8 @@ export async function crearTienda(
   _prev: EstadoCompras,
   formData: FormData,
 ): Promise<EstadoCompras> {
-  const nombre = limpiar(formData.get('nombre'))
+  // `tienda`, no `nombre`: ver el comentario en `gestor.tsx`.
+  const nombre = limpiar(formData.get('tienda'))
   if (!nombre) return fallo('Escribí el nombre de la tienda.')
   if (nombre.length > 40) return fallo('El nombre es muy largo (máximo 40).')
 
@@ -215,7 +217,8 @@ export async function crearTag(
   _prev: EstadoCompras,
   formData: FormData,
 ): Promise<EstadoCompras> {
-  const nombre = limpiar(formData.get('nombre'))
+  // `etiqueta`, no `nombre`: ver el comentario en `gestor.tsx`.
+  const nombre = limpiar(formData.get('etiqueta'))
   if (!nombre) return fallo('Escribí el nombre de la etiqueta.')
   if (nombre.length > 30) return fallo('El nombre es muy largo (máximo 30).')
 

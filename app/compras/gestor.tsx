@@ -48,6 +48,7 @@ export function Gestor({
   vacio,
 }: {
   filas: FilaGestor[]
+  /** Va como `id` y como `name` del input: llega a la acción con este nombre. */
   campoId: string
   etiquetaCampo: string
   placeholder: string
@@ -78,9 +79,15 @@ export function Gestor({
         <label htmlFor={campoId} className="sr-only">
           {etiquetaCampo}
         </label>
+        {/*
+          El `name` sale de `campoId` («tienda», «etiqueta») y no es «nombre»
+          a propósito: Safari ignora el `autoComplete="off"` de abajo y clasifica
+          el campo por heurística sobre el `name` y el `id`. Con «nombre» lo toma
+          por el titular de una tarjeta y ofrece los datos de pago del iPhone.
+        */}
         <input
           id={campoId}
-          name="nombre"
+          name={campoId}
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           placeholder={placeholder}

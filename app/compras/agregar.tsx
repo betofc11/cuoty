@@ -27,12 +27,20 @@ export function AgregarItem() {
   return (
     <div className="flex flex-col gap-2">
       <form action={accion} className="flex gap-2">
-        <label htmlFor="nombre" className="sr-only">
+        <label htmlFor="producto" className="sr-only">
           Qué hay que comprar
         </label>
+        {/*
+          El campo se llama `producto` y no `nombre` a propósito. Safari ignora
+          el `autoComplete="off"` y clasifica el campo por heurística sobre el
+          `name` y el `id`: con `nombre` lo tomaba por el titular de una tarjeta
+          y ofrecía rellenarlo con los datos de pago del iPhone. No lo renombres
+          de vuelta — el atributo de abajo solo lo respetan Chrome y Firefox.
+        */}
         <input
-          id="nombre"
-          name="nombre"
+          id="producto"
+          name="producto"
+          type="text"
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           placeholder="Leche, pan, tomates…"

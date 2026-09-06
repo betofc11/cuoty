@@ -60,12 +60,18 @@ export function FormGasto({
       {periodoId ? <input type="hidden" name="periodoId" value={periodoId} /> : null}
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="nombre" className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+        <label htmlFor="concepto" className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
           Nombre
         </label>
+        {/*
+          El campo se llama `concepto` y no `nombre` a propósito: Safari
+          clasifica el input por heurística sobre el `name` y el `id`, y con
+          «nombre» lo toma por el titular de una tarjeta y ofrece los datos de
+          pago del iPhone. El `autoComplete="off"` no lo evita: Safari lo ignora.
+        */}
         <input
-          id="nombre"
-          name="nombre"
+          id="concepto"
+          name="concepto"
           defaultValue={gasto?.nombre ?? ''}
           placeholder="Electricidad ICE"
           maxLength={60}

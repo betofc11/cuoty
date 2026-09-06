@@ -16,9 +16,14 @@ export function FormLista() {
       <OfflineBanner />
       {estado.error ? <Alert tono="error">{estado.error}</Alert> : null}
 
+      {/*
+        `titulo` y no `nombre`: Safari ignora el `autoComplete="off"` y decide
+        por heurística sobre el `name` y el `id`. Con «nombre» toma el campo por
+        el titular de una tarjeta y ofrece los datos de pago del iPhone.
+      */}
       <Field
-        id="nombre"
-        name="nombre"
+        id="titulo"
+        name="titulo"
         label="Nombre de la lista"
         placeholder="Servicios"
         maxLength={40}

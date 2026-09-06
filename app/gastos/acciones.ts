@@ -42,7 +42,8 @@ export async function crearGasto(
   _prev: EstadoGasto,
   formData: FormData,
 ): Promise<EstadoGasto> {
-  const nombre = String(formData.get('nombre') ?? '').trim()
+  // `concepto`, no `nombre`: ver el comentario en `form-gasto.tsx`.
+  const nombre = String(formData.get('concepto') ?? '').trim()
   const listaId = String(formData.get('listaId') ?? '')
   const periodoId = String(formData.get('periodoId') ?? '')
   const fechaCobro = String(formData.get('fechaCobro') ?? '').trim()
@@ -119,7 +120,8 @@ export async function editarGasto(
   formData: FormData,
 ): Promise<EstadoGasto> {
   const gastoId = String(formData.get('gastoId') ?? '')
-  const nombre = String(formData.get('nombre') ?? '').trim()
+  // `concepto`, no `nombre`: ver el comentario en `form-gasto.tsx`.
+  const nombre = String(formData.get('concepto') ?? '').trim()
   const listaId = String(formData.get('listaId') ?? '')
   const fechaCobro = String(formData.get('fechaCobro') ?? '').trim()
   const moneda = leerMoneda(formData)
@@ -163,7 +165,8 @@ export async function crearLista(
   _prev: EstadoGasto,
   formData: FormData,
 ): Promise<EstadoGasto> {
-  const nombre = String(formData.get('nombre') ?? '').trim()
+  // `titulo`, no `nombre`: ver el comentario en `form-lista.tsx`.
+  const nombre = String(formData.get('titulo') ?? '').trim()
   if (!nombre) return { error: 'Ponele nombre a la lista.' }
 
   const { activa } = await contextoDeCasa()

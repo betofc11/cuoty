@@ -22,7 +22,8 @@ export async function crearCasa(
   _prev: EstadoCasa,
   formData: FormData,
 ): Promise<EstadoCasa> {
-  const nombre = String(formData.get('nombre') ?? '').trim()
+  // `casa`, no `nombre`: ver el comentario en `crear-form.tsx`.
+  const nombre = String(formData.get('casa') ?? '').trim()
 
   if (!nombre) return { error: 'Poné un nombre para la casa.' }
   if (nombre.length > 60) return { error: 'El nombre es muy largo: máximo 60 caracteres.' }
