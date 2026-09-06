@@ -25,6 +25,20 @@
 
   --peligro: #a33526;
   --ok: #2f6d42;
+
+  /* Tonos de etiqueta. El prototipo le da color propio a cada etiqueta
+     («Frescos» verde, «Limpieza» teal) y deja la tienda en neutro, para
+     que en la fila se lean como dos cosas distintas. El tono se elige en
+     runtime a partir del id (lib/compras/tonos), así que van como
+     variables y no como clases: Tailwind solo genera lo que ve escrito. */
+  --etiqueta-1: #4a6631;
+  --etiqueta-2: #1f7a86;
+  --etiqueta-3: #8a6320;
+  --etiqueta-4: #5b4a86;
+  --etiqueta-5: #8f4350;
+  --etiqueta-6: #3a5a8a;
+  --etiqueta-7: #7a3f6d;
+  --etiqueta-8: #2f6d5a;
 }
 
 /* El toggle manual llega en la fase 10; por ahora seguimos al sistema. */
@@ -47,6 +61,17 @@
 
     --peligro: #e0705f;
     --ok: #6bbf85;
+
+    /* Los mismos seis tonos, aclarados: sobre superficie oscura el tono
+       claro es el texto y la mezcla al 15% es el fondo. */
+    --etiqueta-1: #9dc47c;
+    --etiqueta-2: #5fbcc6;
+    --etiqueta-3: #d9ac62;
+    --etiqueta-4: #a99adb;
+    --etiqueta-5: #dd9aa4;
+    --etiqueta-6: #93b2df;
+    --etiqueta-7: #cf9dc4;
+    --etiqueta-8: #71c2a9;
   }
 }
 
@@ -68,6 +93,15 @@
 
   --peligro: #e0705f;
   --ok: #6bbf85;
+
+  --etiqueta-1: #9dc47c;
+  --etiqueta-2: #5fbcc6;
+  --etiqueta-3: #d9ac62;
+  --etiqueta-4: #a99adb;
+  --etiqueta-5: #dd9aa4;
+  --etiqueta-6: #93b2df;
+  --etiqueta-7: #cf9dc4;
+  --etiqueta-8: #71c2a9;
 }
 
 @theme inline {

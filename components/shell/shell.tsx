@@ -10,7 +10,18 @@ import { Tabs } from './tabs'
  * pueda mover el archivo, esto pasa a ser `app/(app)/layout.tsx` sin cambiar
  * nada más.
  */
-export async function Shell({ children }: { children: React.ReactNode }) {
+export async function Shell({
+  children,
+  pie,
+}: {
+  children: React.ReactNode
+  /**
+   * Acción anclada sobre la barra de tabs. Compras la usa para el alta
+   * rápida. Va acá y no dentro de la página porque tiene que quedar
+   * pegada al pie de la ventana, por encima del scroll del contenido.
+   */
+  pie?: React.ReactNode
+}) {
   const { user } = await requireUser()
   const { activa, casas } = await contextoDeCasa()
 
@@ -21,7 +32,13 @@ export async function Shell({ children }: { children: React.ReactNode }) {
     <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">
       <Navbar activa={activa} casas={casas} inicial={inicial || '?'} />
       <main className="flex-1 px-4 py-5">{children}</main>
-      <Tabs />
+
+      {/* El pie y las tabs comparten el sticky: si cada uno lleva el suyo,
+          el de abajo tapa al de arriba en vez de apilarse. */}
+      <div className="bg-superficie-alta sticky bottom-0 z-10 pb-[env(safe-area-inset-bottom)]">
+        {pie}
+        <Tabs />
+      </div>
     </div>
   )
 }

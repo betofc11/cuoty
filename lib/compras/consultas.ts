@@ -1,19 +1,19 @@
 import { requireUser } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
+import { esHoyCR } from '@/lib/fechas'
 
 import { contiene } from './texto'
-
-export type Ver = 'pendientes' | 'comprados' | 'todos'
+import { tonoPorPosicion } from './tonos'
 
 export type Filtros = {
-  ver: Ver
   tienda: string | null
   tag: string | null
   q: string
 }
 
 export type TiendaVista = { id: string; nombre: string; esPredeterminada: boolean }
-export type TagVista = { id: string; nombre: string }
+/** `tono` es 1..TONOS y sale de la posición en la lista de la casa. */
+export type TagVista = { id: string; nombre: string; tono: number }
 
 export type ItemVista = {
   id: string
@@ -29,32 +29,29 @@ export type ItemVista = {
   fotos: number
 }
 
-export type GrupoVista = { tienda: TiendaVista; items: ItemVista[] }
+/** La tienda con cuántos pendientes tiene: el chip de filtro lleva el número. */
+export type TiendaConteo = TiendaVista & { pendientes: number }
 
 export type VistaCompras = {
-  grupos: GrupoVista[]
-  tiendas: TiendaVista[]
+  /** Pendientes que pasaron el filtro. Lista plana: la tienda va en la fila. */
+  items: ItemVista[]
+  /** Marcados hoy. Quedan a la vista para poder deshacer el toque. */
+  compradosHoy: ItemVista[]
+  /** Marcados antes de hoy. Viven en el acordeón del pie. */
+  compradosAntes: ItemVista[]
+  /** Solo las tiendas con pendientes, más la que esté filtrada. */
+  tiendas: TiendaConteo[]
+  /** Solo las etiquetas que algún pendiente usa, más la que esté filtrada. */
   tags: TagVista[]
   /** Conteos de la casa entera: no los toca ningún filtro. */
-  pendientes: number
-  comprados: number
-  /** Cuántos quedaron después de filtrar. */
-  mostrados: number
+  totalPendientes: number
+  totalComprados: number
   /** Distingue "la casa no tiene nada" de "el filtro no encontró nada". */
   listaVacia: boolean
 }
 
-export function leerFiltros(params: {
-  ver?: string
-  tienda?: string
-  tag?: string
-  q?: string
-}): Filtros {
-  const ver: Ver =
-    params.ver === 'comprados' || params.ver === 'todos' ? params.ver : 'pendientes'
-
+export function leerFiltros(params: { tienda?: string; tag?: string; q?: string }): Filtros {
   return {
-    ver,
     tienda: params.tienda || null,
     tag: params.tag || null,
     q: (params.q ?? '').trim(),
@@ -97,7 +94,14 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
     nombre: t.name,
     esPredeterminada: t.is_default,
   }))
-  const tags: TagVista[] = (filasTags ?? []).map((t) => ({ id: t.id, nombre: t.name }))
+  // El tono sale del orden alfabético de TODAS las etiquetas de la casa,
+  // no de las que sobrevivan al filtro: si no, el color de una etiqueta
+  // cambiaría según lo que estés filtrando.
+  const tags: TagVista[] = (filasTags ?? []).map((t, i) => ({
+    id: t.id,
+    nombre: t.name,
+    tono: tonoPorPosicion(i),
+  }))
 
   const items = filasItems ?? []
   const ids = items.map((i) => i.id)
@@ -157,36 +161,50 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
     })
   }
 
-  const filtrados = vistas.filter((item) => {
-    if (filtros.ver === 'pendientes' && item.comprado) return false
-    if (filtros.ver === 'comprados' && !item.comprado) return false
-    if (filtros.tienda && item.tienda.id !== filtros.tienda) return false
-    if (filtros.tag && !item.tags.some((t) => t.id === filtros.tag)) return false
-    if (filtros.q) {
-      const enNombre = contiene(item.producto, filtros.q)
-      const enNota = item.nota ? contiene(item.nota, filtros.q) : false
-      if (!enNombre && !enNota) return false
-    }
-    return true
-  })
-
-  // Agrupado por tienda: en el super lo que importa es "qué llevo de acá".
-  // Las compradas van al final de su grupo, no se sacan de la lista.
-  const grupos: GrupoVista[] = []
-  for (const tienda of tiendas) {
-    const suyos = filtrados.filter((i) => i.tienda.id === tienda.id)
-    if (suyos.length === 0) continue
-    suyos.sort((a, b) => Number(a.comprado) - Number(b.comprado))
-    grupos.push({ tienda, items: suyos })
+  // Los tres filtros van sueltos: los chips de tienda se cuentan con el
+  // resto puesto pero sin el suyo propio, o «Walmart 4» diría siempre 4
+  // aunque estés viendo Automercado.
+  const porTienda = (i: ItemVista) => !filtros.tienda || i.tienda.id === filtros.tienda
+  const porTag = (i: ItemVista) => !filtros.tag || i.tags.some((t) => t.id === filtros.tag)
+  const porTexto = (i: ItemVista) => {
+    if (!filtros.q) return true
+    return contiene(i.producto, filtros.q) || (i.nota ? contiene(i.nota, filtros.q) : false)
   }
 
+  const pasaTodo = (i: ItemVista) => porTienda(i) && porTag(i) && porTexto(i)
+
+  const sinComprar = vistas.filter((i) => !i.comprado)
+  const yaComprados = vistas.filter((i) => i.comprado)
+
+  const conteoTiendas: TiendaConteo[] = tiendas
+    .map((t) => ({
+      ...t,
+      pendientes: sinComprar.filter(
+        (i) => i.tienda.id === t.id && porTag(i) && porTexto(i),
+      ).length,
+    }))
+    // Una tienda sin nada que comprar no es un filtro, es ruido. La
+    // filtrada se queda aunque llegue a cero: si no, desaparece el único
+    // chip que sirve para volver atrás.
+    .filter((t) => t.pendientes > 0 || t.id === filtros.tienda)
+
+  const usadas = new Set(
+    sinComprar.filter((i) => porTienda(i) && porTexto(i)).flatMap((i) => i.tags.map((t) => t.id)),
+  )
+  const tagsEnUso = tags.filter((t) => usadas.has(t.id) || t.id === filtros.tag)
+
+  // Lo marcado hoy no se va de la lista: si al tocar la casilla el item
+  // desapareciera, deshacer un toque errado obligaría a abrir el acordeón.
+  const compradosFiltrados = yaComprados.filter(pasaTodo)
+
   return {
-    grupos,
-    tiendas,
-    tags,
-    pendientes,
-    comprados,
-    mostrados: filtrados.length,
+    items: sinComprar.filter(pasaTodo),
+    compradosHoy: compradosFiltrados.filter((i) => i.compradoEl && esHoyCR(i.compradoEl)),
+    compradosAntes: compradosFiltrados.filter((i) => !i.compradoEl || !esHoyCR(i.compradoEl)),
+    tiendas: conteoTiendas,
+    tags: tagsEnUso,
+    totalPendientes: pendientes,
+    totalComprados: comprados,
     listaVacia: vistas.length === 0,
   }
 }
@@ -229,12 +247,19 @@ export async function detalleDeItem(itemId: string): Promise<DetalleItem | null>
 
   if (!tienda) return null
 
-  const ids = (filasTags ?? []).map((t) => t.tag_id)
-  const { data: tags } = await supabase
+  // Se piden TODAS las etiquetas de la casa y no solo las del item: el
+  // tono depende de la posición en esa lista, así que recortarla antes
+  // daría un color distinto acá que en la lista.
+  const ids = new Set((filasTags ?? []).map((t) => t.tag_id))
+  const { data: todas } = await supabase
     .from('tags')
     .select('id, name')
-    .in('id', ids)
+    .eq('house_id', activa.id)
     .order('name')
+
+  const tags: TagVista[] = (todas ?? [])
+    .map((t, i) => ({ id: t.id, nombre: t.name, tono: tonoPorPosicion(i) }))
+    .filter((t) => ids.has(t.id))
 
   const nombrePersona = new Map((perfiles ?? []).map((p) => [p.id, p.display_name]))
 
@@ -245,7 +270,7 @@ export async function detalleDeItem(itemId: string): Promise<DetalleItem | null>
     nota: item.note,
     comprado: item.status === 'purchased',
     tienda: { id: tienda.id, nombre: tienda.name, esPredeterminada: tienda.is_default },
-    tags: (tags ?? []).map((t) => ({ id: t.id, nombre: t.name })),
+    tags,
     agregadoPor: (item.added_by && nombrePersona.get(item.added_by)) || 'Alguien',
     compradoPor: (item.purchased_by && nombrePersona.get(item.purchased_by)) || null,
     compradoEl: item.purchased_at,

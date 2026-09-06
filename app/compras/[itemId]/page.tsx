@@ -4,6 +4,7 @@ import { BackLink } from '@/components/ui/back-link'
 import { requireUser } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
 import { detalleDeItem } from '@/lib/compras/consultas'
+import { tonoPorPosicion } from '@/lib/compras/tonos'
 import { fechaCorta } from '@/lib/fechas'
 
 import { EditorItem } from './editor'
@@ -66,7 +67,12 @@ export default async function ItemPage({
           nombre: t.name,
           esPredeterminada: t.is_default,
         }))}
-        tags={(tags ?? []).map((t) => ({ id: t.id, nombre: t.name }))}
+        // `tags` viene ordenado por nombre, que es de donde sale el tono.
+        tags={(tags ?? []).map((t, i) => ({
+          id: t.id,
+          nombre: t.name,
+          tono: tonoPorPosicion(i),
+        }))}
       />
 
       <Fotos

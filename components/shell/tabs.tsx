@@ -28,8 +28,9 @@ export function Tabs() {
   return (
     <nav
       aria-label="Secciones"
-      className="border-borde bg-superficie-alta sticky bottom-0 z-10 grid
-                 grid-cols-3 border-t pb-[env(safe-area-inset-bottom)]"
+      // El sticky y el safe-area viven en el contenedor del Shell, que
+      // envuelve estas tabs y el pie de la página.
+      className="border-borde bg-superficie-alta grid grid-cols-3 border-t"
     >
       {TABS.map((tab) => {
         const activo = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href)

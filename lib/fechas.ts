@@ -96,6 +96,14 @@ export function fechaCorta(iso: string): string {
     .replace('.', '')
 }
 
+/**
+ * ¿Ese instante cae hoy en Costa Rica? Lo usa Compras para dejar a la vista
+ * lo que se marcó hoy y mandar al acordeón lo de días anteriores.
+ */
+export function esHoyCR(iso: string): boolean {
+  return diaCR(new Date(iso)) === diaCR(new Date())
+}
+
 /** '2026-08-28' → '28 de agosto'. */
 export function diaYMes(iso: string): string {
   const partes = iso.split('-')

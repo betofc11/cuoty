@@ -47,7 +47,13 @@ Romper cualquiera de estas es un bug, aunque el código compile.
 - Server Components por defecto. Cliente solo donde hace falta interactividad.
 - Una migración por fase, con nombre descriptivo, vía el MCP de Supabase.
   (Las migraciones viven en Supabase, no hay archivos en `supabase/migrations/`.)
-- Íconos siempre con texto al lado. Única excepción: la tuerca del selector de casas.
+- **Íconos siempre con texto al lado.** Un ícono va solo únicamente si cumple las
+  tres: forma convencional (engranaje, más, embudo), `aria-label` propio, y sitio
+  donde no queda espacio para la palabra. Hoy son cuatro: la tuerca del selector
+  de casas, el `+` de la barra de alta de Compras, y el embudo de «Filtros» y la
+  escoba de «Limpiar» cuando la fila de filtros está colapsada — esos dos además
+  muestran su palabra al expandirse. Si vas a agregar un quinto, primero probá si
+  cabe el texto.
 - Target táctil mínimo 48×48 (`min-h-touch`). Tipografía base 16px, no bajar.
 - Toda vista necesita sus estados: cargando, vacío, error, sin señal.
   Ojo: «lista vacía» y «el filtro no encontró nada» son pantallas distintas.
