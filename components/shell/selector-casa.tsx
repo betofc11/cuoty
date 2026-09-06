@@ -26,6 +26,22 @@ function Chip({ casa }: { casa: Casa }) {
   )
 }
 
+function IconoTuerca() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      className="size-5"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.4-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
+    </svg>
+  )
+}
+
 function FilaCasa({ casa, esActiva }: { casa: Casa; esActiva: boolean }) {
   const { pending } = useFormStatus()
 
@@ -64,17 +80,7 @@ function BotonTuerca({ nombre }: { nombre: string }) {
           ···
         </span>
       ) : (
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          className="size-5"
-        >
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.6 1.7 1.7 0 0 0-1.9.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.6-1.1 1.7 1.7 0 0 0-.4-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H23a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" />
-        </svg>
+        <IconoTuerca />
       )}
     </button>
   )
@@ -137,16 +143,33 @@ export function SelectorCasa({ activa, casas }: { activa: Casa; casas: Casa[] })
                 // control. Un botón deshabilitado sería peor que no tenerlo.
                 if (unaSola) {
                   return (
-                    <li key={casa.id} className="flex items-center gap-3 px-4 py-3">
-                      <Chip casa={casa} />
-                      <span className="flex min-w-0 flex-col">
-                        <span className="text-tinta truncate text-base font-semibold">
-                          {casa.nombre}
-                        </span>
-                        <span className="text-tinta-suave text-sm">
-                          {rotulo(casa, true)}
+                    <li key={casa.id} className="flex items-stretch">
+                      <span className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3">
+                        <Chip casa={casa} />
+                        <span className="flex min-w-0 flex-col">
+                          <span className="text-tinta truncate text-base font-semibold">
+                            {casa.nombre}
+                          </span>
+                          <span className="text-tinta-suave text-sm">
+                            {rotulo(casa, true)}
+                          </span>
                         </span>
                       </span>
+
+                      {/* La tuerca SÍ va, aunque no haya nada que elegir: /casa es
+                          el único lugar donde vive el código para invitar. Sin
+                          ella, quien recién crea su casa no puede sumar a nadie. */}
+                      {casa.rol === 'admin' ? (
+                        <Link
+                          href="/casa"
+                          aria-label={`Ajustes de ${casa.nombre}`}
+                          onClick={() => setAbierto(false)}
+                          className="border-borde-suave active:bg-superficie text-tinta-suave
+                                     flex w-14 items-center justify-center self-stretch border-l"
+                        >
+                          <IconoTuerca />
+                        </Link>
+                      ) : null}
                     </li>
                   )
                 }
