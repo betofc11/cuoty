@@ -19,23 +19,37 @@ export type GastoExistente = {
   fechaCobro: string | null
 }
 
+/** Cobros desde `desde` hasta `hasta`, ambos inclusive. Formato 'YYYY-MM'. */
+function cuantosCobros(desde: string, hasta: string): number {
+  const [a1, m1] = desde.split('-').map(Number)
+  const [a2, m2] = hasta.split('-').map(Number)
+  if (!a1 || !m1 || !a2 || !m2) return 0
+  return (a2 - a1) * 12 + (m2 - m1) + 1
+}
+
 export function FormGasto({
   accion,
   listas,
   periodoId,
+  mesInicio,
   gasto,
   etiquetaEnvio,
 }: {
   accion: (prev: EstadoGasto, formData: FormData) => Promise<EstadoGasto>
   listas: ListaOpcion[]
   periodoId?: string
+  /** 'YYYY-MM' del mes al que se carga. Solo hace falta al crear. */
+  mesInicio?: string
   gasto?: GastoExistente
   etiquetaEnvio: string
 }) {
   const [estado, enviar, pendiente] = useActionState<EstadoGasto, FormData>(accion, {})
   const [moneda, setMoneda] = useState<CurrencyCode>(gasto?.moneda ?? 'CRC')
+  const [recurrente, setRecurrente] = useState(false)
+  const [ultimoCobro, setUltimoCobro] = useState('')
 
   const editando = Boolean(gasto)
+  const cobros = mesInicio && ultimoCobro ? cuantosCobros(mesInicio, ultimoCobro) : 0
 
   return (
     <form action={enviar} className="flex flex-col gap-5">
@@ -167,8 +181,76 @@ export function FormGasto({
         </p>
       </div>
 
+      {/* Editar una plantilla es otro flujo: acá solo al crear. */}
+      {!editando ? (
+        <div className="border-borde bg-superficie flex flex-col gap-3 rounded-2xl border p-4">
+          <label className="min-h-touch flex cursor-pointer items-center justify-between gap-3">
+            <span className="flex flex-col">
+              <span className="text-tinta text-base font-medium">Es recurrente</span>
+              <span className="text-tinta-suave text-sm">
+                Se cobra todos los meses hasta que digás
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              name="recurrente"
+              checked={recurrente}
+              onChange={(e) => setRecurrente(e.target.checked)}
+              className="accent-crc size-6 shrink-0"
+            />
+          </label>
+
+          {recurrente ? (
+            <div className="border-borde-suave flex flex-col gap-2 border-t pt-3">
+              <label
+                htmlFor="ultimoCobro"
+                className="text-tinta-suave text-xs font-semibold tracking-wide uppercase"
+              >
+                Último cobro
+              </label>
+              <input
+                id="ultimoCobro"
+                name="ultimoCobro"
+                type="month"
+                min={mesInicio}
+                value={ultimoCobro}
+                onChange={(e) => setUltimoCobro(e.target.value)}
+                className="min-h-touch border-borde bg-superficie-alta text-tinta
+                           focus:border-crc rounded-2xl border px-4 text-base outline-none"
+              />
+              <p className="text-tinta-suave text-sm">
+                Ese mes se cobra también. Después deja de aparecer.
+              </p>
+
+              {ultimoCobro && cobros > 0 ? (
+                <>
+                  <p className="text-tinta text-sm font-medium">
+                    Se cobra {cobros} {cobros === 1 ? 'vez' : 'veces'}, contando este mes.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setUltimoCobro('')}
+                    className="min-h-touch text-crc self-start text-base font-semibold"
+                  >
+                    Quitar la fecha final
+                  </button>
+                </>
+              ) : (
+                <p className="text-tinta text-sm font-medium">
+                  Sin fecha final: se cobra todos los meses hasta que lo termines.
+                </p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <Button type="submit" disabled={pendiente}>
-        {pendiente ? 'Guardando…' : etiquetaEnvio}
+        {pendiente
+          ? 'Guardando…'
+          : recurrente
+            ? 'Agregar gasto recurrente'
+            : etiquetaEnvio}
       </Button>
     </form>
   )

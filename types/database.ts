@@ -1084,6 +1084,18 @@ export type Database = {
     }
     Functions: {
       allocate_payment: { Args: { p_payment_id: string }; Returns: undefined }
+      close_period: {
+        Args: { p_period_id: string }
+        Returns: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          house_id: string
+          id: string
+          month: string
+          status: Database["public"]["Enums"]["period_status"]
+        }
+      }
       cr_month: { Args: { p_at?: string }; Returns: string }
       create_house: {
         Args: { p_name: string }
@@ -1109,6 +1121,7 @@ export type Database = {
         }
       }
       generate_join_code: { Args: never; Returns: string }
+      generate_recurring_expenses: { Args: { p_period_id: string }; Returns: number }
       house_residue_admin: { Args: { p_house_id: string }; Returns: string }
       join_house: {
         Args: { p_code: string }

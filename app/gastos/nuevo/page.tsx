@@ -76,6 +76,7 @@ export default async function NuevoGastoPage({
           accion={crearGasto}
           listas={listas.map((l) => ({ id: l.id, nombre: l.name }))}
           periodoId={periodo.id}
+          mesInicio={periodo.month.slice(0, 7)}
           etiquetaEnvio="Agregar gasto"
         />
       )}

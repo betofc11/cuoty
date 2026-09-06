@@ -16,6 +16,8 @@ export type PeriodoVista = {
   cerradoEl: string | null
 }
 
+export type CierreVista = { cerradoEl: string; cerradoPor: string }
+
 export type GastoVista = {
   id: string
   nombre: string
@@ -48,6 +50,8 @@ export type VistaDeGastos = {
   listas: ListaVista[]
   miCargo: MoneyPair
   arrastres: ArrastreVista[]
+  /** Quién cerró este mes y cuándo. Solo si está cerrado. */
+  cierre: CierreVista | null
 }
 
 /**
@@ -63,11 +67,15 @@ export async function vistaDeGastos(mesPedido?: string): Promise<VistaDeGastos> 
 
   const { data: filasPeriodos, error: errorPeriodos } = await supabase
     .from('periods')
-    .select('id, month, status, closed_at')
+    .select('id, month, status, closed_at, closed_by')
     .eq('house_id', activa.id)
     .order('month', { ascending: false })
 
   if (errorPeriodos) throw new Error(errorPeriodos.message)
+
+  const cerradoPorId = new Map(
+    (filasPeriodos ?? []).map((p) => [p.id, p.closed_by] as const),
+  )
 
   const periodos: PeriodoVista[] = (filasPeriodos ?? []).map((p) => ({
     id: p.id,
@@ -195,5 +203,23 @@ export async function vistaDeGastos(mesPedido?: string): Promise<VistaDeGastos> 
     }
   }
 
-  return { periodo, periodos, listas, miCargo, arrastres }
+  // Quién cerró el mes: es parte del mismo mecanismo de confianza que el
+  // historial de abonos — un acto del admin que el miembro puede ver.
+  let cierre: CierreVista | null = null
+  const autorCierre = cerradoPorId.get(periodo.id)
+
+  if (periodo.estado === 'closed' && periodo.cerradoEl && autorCierre) {
+    const { data: perfil } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', autorCierre)
+      .maybeSingle()
+
+    cierre = {
+      cerradoEl: periodo.cerradoEl,
+      cerradoPor: perfil?.display_name || 'el admin',
+    }
+  }
+
+  return { periodo, periodos, listas, miCargo, arrastres, cierre }
 }

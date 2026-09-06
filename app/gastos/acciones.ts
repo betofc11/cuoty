@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 
 import { requireUser } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
+import { mesActualCR } from '@/lib/fechas'
 import { fromInput, type CurrencyCode, type MoneyAny } from '@/lib/money'
 
 /**
@@ -56,18 +57,55 @@ export async function crearGasto(
   const { activa } = await contextoDeCasa()
   if (activa.rol !== 'admin') return { error: 'Solo el admin agrega gastos.' }
 
+  const esRecurrente = formData.get('recurrente') === 'on'
+  // '2026-12' del selector, o vacío = sin fecha final.
+  const ultimoCobro = String(formData.get('ultimoCobro') ?? '').trim()
+
   try {
     const { supabase } = await requireUser()
-    const { error } = await supabase.from('expenses').insert({
-      house_id: activa.id,
-      list_id: listaId,
-      period_id: periodoId,
-      name: nombre,
-      amount: paraLaBase(monto),
-      currency: moneda,
-      charge_date: fechaCobro || null,
-    })
-    if (error) return { error: mensajeDeBase(error.message) }
+
+    if (!esRecurrente) {
+      const { error } = await supabase.from('expenses').insert({
+        house_id: activa.id,
+        list_id: listaId,
+        period_id: periodoId,
+        name: nombre,
+        amount: paraLaBase(monto),
+        currency: moneda,
+        charge_date: fechaCobro || null,
+      })
+      if (error) return { error: mensajeDeBase(error.message) }
+    } else {
+      const { data: periodo } = await supabase
+        .from('periods')
+        .select('month')
+        .eq('id', periodoId)
+        .maybeSingle()
+
+      if (!periodo) return { error: 'No encontramos el mes al que cargarlo.' }
+
+      if (ultimoCobro && `${ultimoCobro}-01` < periodo.month) {
+        return { error: 'El último cobro no puede ser antes del mes en que empieza.' }
+      }
+
+      const { error } = await supabase.from('recurring_templates').insert({
+        house_id: activa.id,
+        list_id: listaId,
+        name: nombre,
+        amount: paraLaBase(monto),
+        currency: moneda,
+        charge_day: fechaCobro ? Number(fechaCobro.slice(8, 10)) : null,
+        first_charge_month: periodo.month,
+        last_charge_month: ultimoCobro ? `${ultimoCobro}-01` : null,
+      })
+      if (error) return { error: mensajeDeBase(error.message) }
+
+      // La plantilla no cobra sola: crea la instancia de este mes.
+      const { error: errorGen } = await supabase.rpc('generate_recurring_expenses', {
+        p_period_id: periodoId,
+      })
+      if (errorGen) return { error: mensajeDeBase(errorGen.message) }
+    }
   } catch {
     return { error: 'No pudimos conectarnos. Revisá tu señal e intentá de nuevo.' }
   }
@@ -172,6 +210,62 @@ export async function crearLista(
 
   revalidatePath('/gastos')
   redirect('/gastos')
+}
+
+/**
+ * Termina un recurrente: el mes en curso se cobra igual, y después deja de
+ * aparecer. Por eso `last_charge_month` va al mes actual y no al anterior.
+ */
+export async function terminarRecurrente(
+  _prev: EstadoGasto,
+  formData: FormData,
+): Promise<EstadoGasto> {
+  const plantillaId = String(formData.get('plantillaId') ?? '')
+
+  const { activa } = await contextoDeCasa()
+  if (activa.rol !== 'admin') return { error: 'Solo el admin maneja los recurrentes.' }
+
+  try {
+    const { supabase } = await requireUser()
+    const { error } = await supabase
+      .from('recurring_templates')
+      .update({ last_charge_month: mesActualCR() })
+      .eq('id', plantillaId)
+    if (error) return { error: mensajeDeBase(error.message) }
+  } catch {
+    return { error: 'No pudimos conectarnos. Revisá tu señal e intentá de nuevo.' }
+  }
+
+  revalidatePath('/gastos/recurrentes')
+  redirect('/gastos/recurrentes')
+}
+
+/**
+ * Cierra el mes. Manual y solo del admin: el RPC lo vuelve a exigir, y RLS
+ * detrás de él.
+ */
+export async function cerrarMes(
+  _prev: EstadoGasto,
+  formData: FormData,
+): Promise<EstadoGasto> {
+  const periodoId = String(formData.get('periodoId') ?? '')
+  const mesSiguienteClave = String(formData.get('mesSiguiente') ?? '').slice(0, 7)
+
+  const { activa } = await contextoDeCasa()
+  if (activa.rol !== 'admin') {
+    return { error: 'Solo quien administra la casa puede cerrar el mes.' }
+  }
+
+  try {
+    const { supabase } = await requireUser()
+    const { error } = await supabase.rpc('close_period', { p_period_id: periodoId })
+    if (error) return { error: mensajeDeBase(error.message) }
+  } catch {
+    return { error: 'No pudimos conectarnos. Revisá tu señal e intentá de nuevo.' }
+  }
+
+  revalidatePath('/', 'layout')
+  redirect(`/gastos?mes=${mesSiguienteClave}`)
 }
 
 export async function anularGasto(

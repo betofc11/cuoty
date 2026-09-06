@@ -35,6 +35,26 @@ export function nombreDeMes(iso: string, opciones?: { conAnio?: boolean }): stri
   return opciones?.conAnio === false ? nombre : `${nombre} ${anio}`
 }
 
+/** Primer día del mes en curso en Costa Rica: '2026-09-01'. */
+export function mesActualCR(): string {
+  const ym = new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA,
+    year: 'numeric',
+    month: '2-digit',
+  }).format(new Date())
+  return `${ym}-01`
+}
+
+/** '2026-12-01' → '2027-01-01'. Aritmética de calendario, sin Date ni zonas. */
+export function mesSiguiente(iso: string): string {
+  const partes = iso.split('-')
+  const anio = Number(partes[0] ?? '0')
+  const mes = Number(partes[1] ?? '1')
+  return mes === 12
+    ? `${anio + 1}-01-01`
+    : `${anio}-${String(mes + 1).padStart(2, '0')}-01`
+}
+
 /** '2026-09-01' → '2026-09', que es lo que viaja en la URL. */
 export function claveDeMes(iso: string): string {
   return iso.slice(0, 7)

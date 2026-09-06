@@ -6,7 +6,7 @@ import { SelectorMes } from '@/components/gastos/selector-mes'
 import { Shell } from '@/components/shell/shell'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { contextoDeCasa } from '@/lib/casas/activa'
-import { claveDeMes, diaYMes, nombreDeMes } from '@/lib/fechas'
+import { claveDeMes, diaYMes, fechaCorta, nombreDeMes } from '@/lib/fechas'
 import { vistaDeGastos } from '@/lib/gastos/consultas'
 
 export default async function GastosPage({
@@ -27,32 +27,54 @@ export default async function GastosPage({
       <div className="flex flex-col gap-5">
         <OfflineBanner />
 
-        <SelectorMes actual={vista.periodo} periodos={vista.periodos} />
+        <SelectorMes actual={vista.periodo} periodos={vista.periodos} esAdmin={esAdmin} />
 
         {cerrado ? (
-          <p className="border-borde bg-superficie text-tinta-suave rounded-2xl border p-4 text-sm">
-            {nombreDeMes(vista.periodo.mes)} está cerrado. No se agregan ni editan gastos,
-            y sus porcentajes ya no se recalculan.
-          </p>
+          <div className="border-borde bg-superficie flex flex-col gap-1 rounded-2xl border p-4">
+            <span className="text-tinta text-base font-semibold">
+              {nombreDeMes(vista.periodo.mes)} está cerrado
+            </span>
+            {vista.cierre ? (
+              <span className="text-tinta-suave text-sm">
+                Cerrado por {vista.cierre.cerradoPor} · {fechaCorta(vista.cierre.cerradoEl)}
+              </span>
+            ) : null}
+            <span className="text-tinta-suave text-sm">
+              No se agregan ni editan gastos, y sus porcentajes ya no se recalculan.
+            </span>
+          </div>
         ) : null}
 
         {/* Solo el admin agrega. Al miembro no se le muestra apagado. */}
-        {esAdmin && !cerrado ? (
-          <div className="flex gap-2">
-            <Link
-              href={`/gastos/nuevo?mes=${claveDeMes(vista.periodo.mes)}`}
-              className="min-h-touch bg-crc flex flex-1 items-center justify-center rounded-2xl
-                         px-5 text-base font-semibold text-white"
-            >
-              Agregar gasto
-            </Link>
-            <Link
-              href="/gastos/listas/nueva"
-              className="min-h-touch border-borde bg-superficie-alta text-tinta flex items-center
-                         justify-center rounded-2xl border px-4 text-base font-semibold"
-            >
-              Nueva lista
-            </Link>
+        {esAdmin ? (
+          <div className="flex flex-col gap-2">
+            {!cerrado ? (
+              <Link
+                href={`/gastos/nuevo?mes=${claveDeMes(vista.periodo.mes)}`}
+                className="min-h-touch bg-crc flex items-center justify-center rounded-2xl
+                           px-5 text-base font-semibold text-white"
+              >
+                Agregar gasto
+              </Link>
+            ) : null}
+            <div className="flex gap-2">
+              {!cerrado ? (
+                <Link
+                  href="/gastos/listas/nueva"
+                  className="min-h-touch border-borde bg-superficie-alta text-tinta flex flex-1
+                             items-center justify-center rounded-2xl border px-4 text-base font-semibold"
+                >
+                  Nueva lista
+                </Link>
+              ) : null}
+              <Link
+                href="/gastos/recurrentes"
+                className="min-h-touch border-borde bg-superficie-alta text-tinta flex flex-1
+                           items-center justify-center rounded-2xl border px-4 text-base font-semibold"
+              >
+                Recurrentes
+              </Link>
+            </div>
           </div>
         ) : null}
 

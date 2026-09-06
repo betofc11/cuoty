@@ -9,9 +9,11 @@ import type { PeriodoVista } from '@/lib/gastos/consultas'
 export function SelectorMes({
   actual,
   periodos,
+  esAdmin = false,
 }: {
   actual: PeriodoVista
   periodos: PeriodoVista[]
+  esAdmin?: boolean
 }) {
   const [abierto, setAbierto] = useState(false)
 
@@ -69,6 +71,22 @@ export function SelectorMes({
                 </li>
               ))}
             </ul>
+
+            {/* Invariante 10: cerrar el mes es manual y solo del admin.
+                Al miembro no se le muestra apagado — no aparece. */}
+            {esAdmin && actual.estado === 'open' ? (
+              <Link
+                href={`/gastos/cerrar?mes=${claveDeMes(actual.mes)}`}
+                onClick={() => setAbierto(false)}
+                className="border-borde bg-crc-tenue/40 active:bg-crc-tenue flex min-h-touch
+                           flex-col justify-center border-t px-4 py-3"
+              >
+                <span className="text-crc text-base font-semibold">
+                  Terminar {nombreDeMes(actual.mes, { conAnio: false }).toLowerCase()}
+                </span>
+                <span className="text-tinta-suave text-sm">Solo vos podés cerrarlo</span>
+              </Link>
+            ) : null}
           </div>
         </>
       ) : null}
