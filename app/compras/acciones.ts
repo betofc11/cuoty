@@ -12,6 +12,17 @@ function fallo(mensaje: string): EstadoCompras {
   return { error: mensaje }
 }
 
+/**
+ * Recorta las puntas y colapsa los espacios de adentro, igual que hace
+ * `add_shopping_item` con el nombre del producto. Sin esto, "Café  Britt"
+ * y "Café Britt" son dos cosas distintas para el índice único.
+ */
+function limpiar(valor: FormDataEntryValue | null): string {
+  return String(valor ?? '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 function refrescar(itemId?: string) {
   revalidatePath('/compras')
   if (itemId) revalidatePath(`/compras/${itemId}`)
@@ -119,6 +130,12 @@ export async function borrarItem(formData: FormData): Promise<void> {
   await supabase.from('shopping_items').delete().eq('id', itemId)
 
   refrescar()
+
+  // Se borra desde el detalle del item. Sin esto la página se vuelve a
+  // renderizar, no encuentra el item que acaba de desaparecer y tira un
+  // 404: el usuario ve un error después de una operación exitosa.
+  // `redirect` lanza, así que va al final.
+  redirect('/compras')
 }
 
 /** Saca de la vista todo lo ya comprado, sin borrar el historial. */
@@ -141,7 +158,7 @@ export async function crearTienda(
   _prev: EstadoCompras,
   formData: FormData,
 ): Promise<EstadoCompras> {
-  const nombre = String(formData.get('nombre') ?? '').trim()
+  const nombre = limpiar(formData.get('nombre'))
   if (!nombre) return fallo('Escribí el nombre de la tienda.')
   if (nombre.length > 40) return fallo('El nombre es muy largo (máximo 40).')
 
@@ -197,7 +214,7 @@ export async function crearTag(
   _prev: EstadoCompras,
   formData: FormData,
 ): Promise<EstadoCompras> {
-  const nombre = String(formData.get('nombre') ?? '').trim()
+  const nombre = limpiar(formData.get('nombre'))
   if (!nombre) return fallo('Escribí el nombre de la etiqueta.')
   if (nombre.length > 30) return fallo('El nombre es muy largo (máximo 30).')
 

@@ -62,7 +62,9 @@ export default async function ComprasPage({
           <p className="text-tinta-suave text-base">
             {vista.pendientes === 0
               ? 'No falta nada por comprar.'
-              : `Faltan ${vista.pendientes} ${vista.pendientes === 1 ? 'cosa' : 'cosas'}.`}
+              : vista.pendientes === 1
+                ? 'Falta 1 cosa.'
+                : `Faltan ${vista.pendientes} cosas.`}
             {' '}Acá todos los miembros pueden agregar, marcar y borrar.
           </p>
         </header>
@@ -167,16 +169,27 @@ export default async function ComprasPage({
           </section>
         ) : null}
 
-        {/* Hay items pero el filtro no encontró ninguno: son cosas distintas */}
+        {/* Tres vacíos distintos, y mandan a lugares distintos:
+            no encontré / ya está todo comprado / no han comprado nada.
+            Decirle «quitá un filtro» a quien no puso ninguno es peor
+            que no decir nada. */}
         {!vista.listaVacia && vista.mostrados === 0 ? (
           <section className="border-borde-suave flex flex-col gap-3 rounded-2xl border border-dashed p-5">
             <h2 className="text-tinta text-base font-semibold">
-              {filtros.q ? `Nada que coincida con «${filtros.q}»` : 'Nada con esos filtros'}
+              {hayFiltro
+                ? filtros.q
+                  ? `Nada que coincida con «${filtros.q}»`
+                  : 'Nada con esos filtros'
+                : filtros.ver === 'comprados'
+                  ? 'Nada comprado todavía'
+                  : 'Ya está todo comprado'}
             </h2>
             <p className="text-tinta-suave text-base">
-              {filtros.ver === 'comprados'
-                ? 'Todavía no han marcado nada como comprado.'
-                : 'Probá quitando algún filtro.'}
+              {hayFiltro
+                ? 'Probá quitando algún filtro.'
+                : filtros.ver === 'comprados'
+                  ? 'Cuando marquen algo, va a aparecer acá.'
+                  : 'Lo que compraron quedó en «Comprados». Archivalo para sacarlo de la lista.'}
             </p>
             {hayFiltro ? (
               <Link

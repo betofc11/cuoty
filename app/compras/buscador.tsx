@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /**
  * La búsqueda vive en la URL, igual que el mes en Gastos: se puede
@@ -13,11 +13,27 @@ export function Buscador({ inicial }: { inicial: string }) {
   const pathname = usePathname()
   const [texto, setTexto] = useState(inicial)
 
+  // La última búsqueda que empujamos NOSOTROS a la URL. Sirve para
+  // distinguir "el servidor me devuelve lo que yo mismo escribí" de
+  // "la URL cambió por otra cosa".
+  const ultimaEnviada = useRef(inicial)
+
+  useEffect(() => {
+    // Si `inicial` no coincide con lo último que empujamos, el cambio
+    // vino de afuera: «Quitar los filtros», un enlace, o el botón atrás.
+    // Ahí sí hay que reflejarlo en el campo.
+    //
+    // Compararlo contra `texto` en vez de contra esto sería peor: entre
+    // que se dispara el debounce y vuelve el render del servidor el
+    // usuario pudo seguir escribiendo, y le borraríamos lo tecleado.
+    if (inicial !== ultimaEnviada.current) {
+      ultimaEnviada.current = inicial
+      setTexto(inicial)
+    }
+  }, [inicial])
+
   useEffect(() => {
     const id = setTimeout(() => {
-      // Se lee de window y no de useSearchParams a propósito: ese hook
-      // devuelve un objeto nuevo en cada replace, y como dependencia del
-      // efecto lo dejaría girando en bucle.
       const params = new URLSearchParams(window.location.search)
       const actual = params.get('q') ?? ''
       const nuevo = texto.trim()
@@ -26,6 +42,7 @@ export function Buscador({ inicial }: { inicial: string }) {
       // búsqueda que ya estaba: una vuelta al servidor por cada carga.
       if (actual === nuevo) return
 
+      ultimaEnviada.current = nuevo
       if (nuevo) params.set('q', nuevo)
       else params.delete('q')
 
