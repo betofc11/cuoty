@@ -52,6 +52,25 @@ Romper cualquiera de estas es un bug, aunque el código compile.
 - Toda vista necesita sus estados: cargando, vacío, error, sin señal.
   Ojo: «lista vacía» y «el filtro no encontró nada» son pantallas distintas.
 
+## Diseños
+
+Viven en **`design/`**. Cuando el usuario mencione «el diseño», «el prototipo» o
+una pantalla concreta, buscá ahí primero — no pidas que te lo pegue.
+
+`design/Cuoty.html` es el prototipo original de toda la app.
+
+Dos cosas sobre cómo usarlos:
+
+- **Mandan en lo visual y en el flujo, NO en el comportamiento.** Donde el
+  prototipo contradiga a los invariantes de arriba, ganan los invariantes. El
+  prototipo se dibujó antes que las reglas de negocio.
+- **`Read` no sirve** con `Cuoty.html`: viene empaquetado en una sola línea de
+  ~108k tokens y se come la ventana de contexto entera. Servilo con
+  `preview_start` y leelo con `get_page_text` desde el navegador.
+
+La carpeta está fuera de `app/` y de `public/` para que Next no la sirva ni la
+empaquete: los diseños no van a producción.
+
 ## Cómo trabajar acá
 
 - **Parás al final de cada fase.** Mostrás qué se construyó, qué decisiones tomaste
