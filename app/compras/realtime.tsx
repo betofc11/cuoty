@@ -20,23 +20,46 @@ export function RealtimeCompras({ casaId }: { casaId: string }) {
 
   useEffect(() => {
     const supabase = createClient()
+    let canal: ReturnType<typeof supabase.channel> | null = null
+    let cancelado = false
 
-    const canal = supabase
-      .channel(`compras:${casaId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'shopping_items',
-          filter: `house_id=eq.${casaId}`,
-        },
-        () => router.refresh(),
-      )
-      .subscribe()
+    async function conectar() {
+      // Realtime necesita el token ANTES de suscribirse: sin él el
+      // servidor evalúa RLS como anónimo, no manda ningún evento y no
+      // avisa. Es un fallo callado, que es el peor tipo.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (cancelado) return
+      if (session) supabase.realtime.setAuth(session.access_token)
+
+      canal = supabase
+        .channel(`compras:${casaId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'shopping_items',
+            filter: `house_id=eq.${casaId}`,
+          },
+          () => router.refresh(),
+        )
+        .subscribe((estado) => {
+          if (estado === 'CHANNEL_ERROR' || estado === 'TIMED_OUT') {
+            // Si esto falla la lista sigue funcionando, solo deja de
+            // actualizarse sola. Vale más verlo que tragárselo.
+            console.warn(`[Cuoty] Realtime no conectó: ${estado}`)
+          }
+        })
+    }
+
+    void conectar()
 
     return () => {
-      void supabase.removeChannel(canal)
+      cancelado = true
+      if (canal) void supabase.removeChannel(canal)
     }
   }, [casaId, router])
 
