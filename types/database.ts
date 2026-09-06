@@ -68,6 +68,8 @@ export type Database = {
           period_id: string
           recurring_template_id: string | null
           updated_at: string
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           amount: number
@@ -82,6 +84,8 @@ export type Database = {
           period_id: string
           recurring_template_id?: string | null
           updated_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           amount?: number
@@ -96,6 +100,8 @@ export type Database = {
           period_id?: string
           recurring_template_id?: string | null
           updated_at?: string
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -1090,6 +1096,18 @@ export type Database = {
         }
       }
       current_actor: { Args: never; Returns: string }
+      ensure_current_period: {
+        Args: { p_house_id: string }
+        Returns: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          house_id: string
+          id: string
+          month: string
+          status: Database["public"]["Enums"]["period_status"]
+        }
+      }
       generate_join_code: { Args: never; Returns: string }
       house_residue_admin: { Args: { p_house_id: string }; Returns: string }
       join_house: {
@@ -1100,6 +1118,28 @@ export type Database = {
           id: string
           join_code: string
           name: string
+        }
+      }
+      register_payment: {
+        Args: {
+          p_amount: number
+          p_currency: Database["public"]["Enums"]["currency_code"]
+          p_membership_id: string
+          p_method?: string
+          p_note?: string
+        }
+        Returns: {
+          amount: number
+          currency: Database["public"]["Enums"]["currency_code"]
+          house_id: string
+          id: string
+          kind: Database["public"]["Enums"]["payment_kind"]
+          membership_id: string
+          method: string | null
+          note: string | null
+          recorded_at: string
+          recorded_by: string
+          reverses_payment_id: string | null
         }
       }
       split_expense_amount: {

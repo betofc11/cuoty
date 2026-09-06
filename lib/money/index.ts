@@ -31,6 +31,13 @@ export type Money<C extends CurrencyCode = CurrencyCode> = {
   readonly currency: C
 }
 
+/**
+ * Unión explícita de las dos monedas. `Money` a secas no se puede estrechar
+ * mirando `.currency` porque el genérico no es un discriminante; esto sí:
+ * dentro de `if (m.currency === 'CRC')`, `m` es `Money<'CRC'>`.
+ */
+export type MoneyAny = Money<'CRC'> | Money<'USD'>
+
 /** Dos cifras paralelas. Es lo más cerca de un "total" que existe en Cuoty. */
 export type MoneyPair = {
   readonly CRC: Money<'CRC'>
@@ -55,6 +62,20 @@ export function zeroPair(): MoneyPair {
 }
 
 /**
+ * Suma un monto al lado que le toca del par. Es la única forma de acumular
+ * filas de la base que vienen mezcladas por moneda sin cruzarlas nunca.
+ */
+export function addToPair(
+  par: MoneyPair,
+  amount: number | string,
+  currency: CurrencyCode,
+): MoneyPair {
+  return currency === 'CRC'
+    ? { ...par, CRC: add(par.CRC, fromDecimal(amount, 'CRC')) }
+    : { ...par, USD: add(par.USD, fromDecimal(amount, 'USD')) }
+}
+
+/**
  * Parsea el decimal que devuelve Postgres ("38400.00"). Trabaja sobre el string
  * para no pasar nunca por un float.
  */
@@ -74,6 +95,37 @@ export function fromDecimal<C extends CurrencyCode>(
 
   const magnitude = Number(whole) * 100 + Number(frac)
   return money(negative ? -magnitude : magnitude, currency)
+}
+
+/**
+ * Lee lo que una persona escribió en un campo. En Costa Rica el punto separa
+ * miles y la coma decimales, pero la gente mezcla: «38.400», «38400», «15,99»,
+ * «1.234,56» y «15.99» tienen que caer todos donde corresponde.
+ *
+ * Regla: se mira el ÚLTIMO separador. Si le siguen exactamente tres dígitos es
+ * de miles; si no, es decimal. Los anteriores siempre son de miles.
+ *
+ * Devuelve null si no hay un número reconocible.
+ */
+export function fromInput<C extends CurrencyCode>(
+  texto: string,
+  currency: C,
+): Money<C> | null {
+  const limpio = texto.replace(/[^\d.,]/g, '')
+  if (!/\d/.test(limpio)) return null
+
+  const corte = Math.max(limpio.lastIndexOf('.'), limpio.lastIndexOf(','))
+
+  if (corte === -1) return fromDecimal(limpio, currency)
+
+  const cola = limpio.slice(corte + 1)
+  const cabeza = limpio.slice(0, corte).replace(/[.,]/g, '')
+
+  // Tres dígitos después del último separador: era de miles.
+  if (/^\d{3}$/.test(cola)) return fromDecimal(`${cabeza}${cola}`, currency)
+
+  const decimales = cola.replace(/\D/g, '').slice(0, 2).padEnd(2, '0')
+  return fromDecimal(`${cabeza || '0'}.${decimales}`, currency)
 }
 
 /** Serializa para escribir en un numeric(14,2). */
