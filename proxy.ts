@@ -14,6 +14,11 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Todo salvo estáticos e imágenes.
-    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+    //
+    // `sw.js` va afuera por obligación, no por eficiencia: si la sesión venció,
+    // el proxy respondería con un redirect al login, y la especificación de
+    // service workers prohíbe redirects al pedir el script. El worker dejaría
+    // de actualizarse y no habría forma de darse cuenta.
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 }

@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 
 import { siteUrl } from '@/lib/site'
+import { claseDeTema, temaActual, FONDO_CLARO, FONDO_OSCURO } from '@/lib/tema'
+
+import { RegistrarServiceWorker } from './registrar-sw'
 
 import './globals.css'
 
@@ -66,26 +69,45 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 }
 
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  // Sin maximumScale: nunca bloquear el zoom.
+export async function generateViewport(): Promise<Viewport> {
+  const tema = await temaActual()
 
-  // Instalada, la app ocupa la pantalla completa: sin `cover`, las variables
-  // `env(safe-area-inset-*)` valen 0 y el `pb-[env(safe-area-inset-bottom)]` de
-  // las tabs no hace nada — la barra inferior queda bajo el indicador de inicio.
-  viewportFit: 'cover',
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    // Sin maximumScale: nunca bloquear el zoom.
 
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#efe9e1' },
-    { media: '(prefers-color-scheme: dark)', color: '#1a1613' },
-  ],
+    // Instalada, la app ocupa la pantalla completa: sin `cover`, las variables
+    // `env(safe-area-inset-*)` valen 0 y el `pb-[env(safe-area-inset-bottom)]` de
+    // las tabs no hace nada — la barra inferior queda bajo el indicador de inicio.
+    viewportFit: 'cover',
+
+    // Si el usuario forzó un tema, el theme-color tiene que ser ese y no el del
+    // sistema. Con el par de media queries, quien elige oscuro con el teléfono
+    // en claro termina con la barra de estado clara sobre una app oscura.
+    themeColor:
+      tema === 'claro'
+        ? FONDO_CLARO
+        : tema === 'oscuro'
+          ? FONDO_OSCURO
+          : [
+              { media: '(prefers-color-scheme: light)', color: FONDO_CLARO },
+              { media: '(prefers-color-scheme: dark)', color: FONDO_OSCURO },
+            ],
+  }
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const tema = await temaActual()
+
   return (
-    <html lang="es-CR">
-      <body className="min-h-dvh antialiased">{children}</body>
+    // La clase sale ya resuelta del servidor: no hay script que corrija el tema
+    // después de pintar, así que no hay parpadeo al abrir.
+    <html lang="es-CR" className={claseDeTema(tema)}>
+      <body className="min-h-dvh antialiased">
+        {children}
+        <RegistrarServiceWorker />
+      </body>
     </html>
   )
 }

@@ -1,10 +1,13 @@
 import { BackLink } from '@/components/ui/back-link'
+import { SelectorTema } from '@/components/ui/selector-tema'
 import { misCasas, requireUser } from '@/lib/auth/session'
 import { colorDeCasa, inicialDeCasa } from '@/lib/casas/color'
+import { temaActual } from '@/lib/tema'
 
 export default async function CuentaPage() {
   const { user } = await requireUser()
   const casas = await misCasas()
+  const tema = await temaActual()
 
   const meta = user.user_metadata as { full_name?: string } | undefined
   const nombre = meta?.full_name?.trim()
@@ -48,6 +51,8 @@ export default async function CuentaPage() {
           El rol es por casa: podés ser admin en una y miembro en otra.
         </p>
       </section>
+
+      <SelectorTema actual={tema} />
 
       <form action="/auth/signout" method="post" className="mt-auto">
         <button

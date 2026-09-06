@@ -6,9 +6,19 @@ import type { Database } from '@/types/database'
 
 import { supabasePublishableKey, supabaseUrl } from './env'
 
-/** Rutas que se pueden ver sin sesión. */
+/**
+ * Rutas que se pueden ver sin sesión.
+ *
+ * `/offline` va acá porque el service worker la precachea al instalarse, y en
+ * ese momento no manda cookies: si el proxy la redirigiera al login, lo que
+ * quedaría guardado para mostrar sin señal sería la pantalla de login.
+ */
 function esPublica(pathname: string): boolean {
-  return pathname.startsWith('/login') || pathname.startsWith('/auth')
+  return (
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/auth') ||
+    pathname === '/offline'
+  )
 }
 
 /**
