@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 
 import type { Database } from '@/types/database'
 
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './env'
+import { supabasePublishableKey, supabaseUrl } from './env'
 
 /**
  * Cliente para Server Components, Route Handlers y Server Actions.
@@ -14,7 +14,7 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './env'
 export async function createClient() {
   const cookieStore = await cookies()
 
-  return createServerClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  return createServerClient<Database>(supabaseUrl(), supabasePublishableKey(), {
     cookies: {
       getAll() {
         return cookieStore.getAll()

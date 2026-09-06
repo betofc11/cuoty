@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 
 import type { Database } from '@/types/database'
 
-import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './env'
+import { supabasePublishableKey, supabaseUrl } from './env'
 
 /** Rutas que se pueden ver sin sesión. */
 function esPublica(pathname: string): boolean {
@@ -21,7 +21,7 @@ function esPublica(pathname: string): boolean {
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request })
 
-  const supabase = createServerClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  const supabase = createServerClient<Database>(supabaseUrl(), supabasePublishableKey(), {
     cookies: {
       getAll() {
         return request.cookies.getAll()
