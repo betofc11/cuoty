@@ -17,7 +17,7 @@ export function Navbar({
   return (
     <header
       className="border-borde bg-superficie-alta sticky top-0 z-20 flex items-center
-                 gap-2 border-b px-4 py-2"
+                 gap-2 border-b px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]"
     >
       <Link href="/" aria-label="Cuoty · ir al dashboard" className="min-h-touch flex items-center">
         <Logo size="chico" />

@@ -1,16 +1,81 @@
 import type { Metadata, Viewport } from 'next'
 
+import { siteUrl } from '@/lib/site'
+
 import './globals.css'
 
+const NOMBRE = 'Cuoty'
+const DESCRIPCION = 'Finanzas compartidas del hogar y lista de compras.'
+
 export const metadata: Metadata = {
-  title: 'Cuoty',
-  description: 'Finanzas compartidas del hogar y lista de compras.',
+  // Vuelve absolutas las URLs relativas de abajo (Open Graph las exige así).
+  metadataBase: new URL(siteUrl()),
+
+  applicationName: NOMBRE,
+  title: {
+    default: 'Cuoty · finanzas compartidas del hogar',
+    template: '%s · Cuoty',
+  },
+  description: DESCRIPCION,
+
+  // El `<link rel="manifest">` NO va acá: lo inyecta `app/manifest.ts` por
+  // convención de archivo. Declararlo también saca dos etiquetas.
+
+  icons: {
+    icon: [
+      { url: '/icons/favicon-16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
+
+  // iOS no lee el manifest: `display: standalone` no lo instala sin esto. Es lo
+  // que hace que al abrirla desde la pantalla de inicio no salga Safari.
+  appleWebApp: {
+    capable: true,
+    title: NOMBRE,
+    // `default` deja que iOS pinte la barra de estado con el theme-color y
+    // elija el color de texto legible — así sirve en claro y en oscuro. Con
+    // `black-translucent` el texto queda blanco fijo, ilegible sobre #efe9e1.
+    statusBarStyle: 'default',
+  },
+
+  // `appleWebApp.capable` solo emite `mobile-web-app-capable`, el nombre nuevo.
+  // iOS 16.4+ ya lee `display: standalone` del manifest, pero abajo de esa
+  // versión el único que abre en standalone es este. Sale junto al moderno,
+  // así que Chrome no tira el aviso de obsoleto.
+  other: { 'apple-mobile-web-app-capable': 'yes' },
+
+  // La app está llena de montos. Sin esto Safari convierte cifras y fechas en
+  // enlaces de teléfono y las pinta de azul.
+  formatDetection: { telephone: false, date: false, address: false, email: false },
+
+  openGraph: {
+    type: 'website',
+    siteName: NOMBRE,
+    title: 'Cuoty · finanzas compartidas del hogar',
+    description: DESCRIPCION,
+    url: '/',
+    locale: 'es_CR',
+    images: [{ url: '/icons/icon-1024.png', width: 1024, height: 1024, alt: NOMBRE }],
+  },
+
+  // Es la app de una casa, no un sitio público: que no la indexe nadie.
+  // Si algún día hay landing, esto se borra.
+  robots: { index: false, follow: false },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   // Sin maximumScale: nunca bloquear el zoom.
+
+  // Instalada, la app ocupa la pantalla completa: sin `cover`, las variables
+  // `env(safe-area-inset-*)` valen 0 y el `pb-[env(safe-area-inset-bottom)]` de
+  // las tabs no hace nada — la barra inferior queda bajo el indicador de inicio.
+  viewportFit: 'cover',
+
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#efe9e1' },
     { media: '(prefers-color-scheme: dark)', color: '#1a1613' },

@@ -33,12 +33,36 @@ Dos cosas no se pueden hacer por migración:
 
 ```
 app/                 rutas (Server Components por defecto)
+app/manifest.ts      manifest de la PWA → se sirve en /manifest.webmanifest
+app/layout.tsx       meta tags, íconos y viewport de toda la app
+public/icons/        íconos: favicons, apple-touch y los del manifest
 lib/supabase/        cliente browser · server · middleware
 lib/money/           moneda: la invariante 7 como sistema de tipos
 types/database.ts    GENERADO desde el esquema real — no editar
 supabase/migrations/ migraciones versionadas, una por fase
 middleware.ts        refresco de sesión
 ```
+
+## PWA
+
+Se instala en la pantalla de inicio y abre en `standalone`, sin barra de
+direcciones. Tres piezas que se rompen fácil si se tocan por separado:
+
+- **Los íconos van en `public/`.** Es la única carpeta que Next sirve como
+  estático. Fuera de ahí dan 404 aunque el manifest los apunte bien.
+- **`viewport-fit: cover` es obligatorio** (está en `app/layout.tsx`). Sin él,
+  `env(safe-area-inset-*)` vale 0 y la barra de tabs se mete debajo del
+  indicador de inicio del iPhone.
+- **El manifest es `app/manifest.ts`, no un `.json`.** Así lo revisa
+  `npm run typecheck`: un manifest mal escrito no tira error, solo deja de
+  ofrecer la instalación, y eso se nota tarde.
+
+Para probar la instalación hace falta HTTPS o `localhost`. En Chrome:
+DevTools → Application → Manifest.
+
+Todavía **no hay service worker**, así que abierta sin señal no carga nada (el
+`OfflineBanner` avisa, nada más) y Chrome en Android no ofrece instalarla —
+Safari sí, que no lo exige.
 
 ## Invariantes que el código debe respetar
 
