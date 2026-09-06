@@ -1,0 +1,259 @@
+import { requireUser } from '@/lib/auth/session'
+import { contextoDeCasa } from '@/lib/casas/activa'
+
+import { contiene } from './texto'
+
+export type Ver = 'pendientes' | 'comprados' | 'todos'
+
+export type Filtros = {
+  ver: Ver
+  tienda: string | null
+  tag: string | null
+  q: string
+}
+
+export type TiendaVista = { id: string; nombre: string; esPredeterminada: boolean }
+export type TagVista = { id: string; nombre: string }
+
+export type ItemVista = {
+  id: string
+  producto: string
+  cantidad: string | null
+  nota: string | null
+  comprado: boolean
+  tienda: TiendaVista
+  tags: TagVista[]
+  agregadoPor: string
+  compradoPor: string | null
+  compradoEl: string | null
+  fotos: number
+}
+
+export type GrupoVista = { tienda: TiendaVista; items: ItemVista[] }
+
+export type VistaCompras = {
+  grupos: GrupoVista[]
+  tiendas: TiendaVista[]
+  tags: TagVista[]
+  /** Conteos de la casa entera: no los toca ningún filtro. */
+  pendientes: number
+  comprados: number
+  /** Cuántos quedaron después de filtrar. */
+  mostrados: number
+  /** Distingue "la casa no tiene nada" de "el filtro no encontró nada". */
+  listaVacia: boolean
+}
+
+export function leerFiltros(params: {
+  ver?: string
+  tienda?: string
+  tag?: string
+  q?: string
+}): Filtros {
+  const ver: Ver =
+    params.ver === 'comprados' || params.ver === 'todos' ? params.ver : 'pendientes'
+
+  return {
+    ver,
+    tienda: params.tienda || null,
+    tag: params.tag || null,
+    q: (params.q ?? '').trim(),
+  }
+}
+
+/**
+ * Todo lo que necesita la pantalla de Compras.
+ *
+ * En la lista de compras no hay roles: cualquier miembro agrega, marca y
+ * borra. Lo único de admin son las tiendas, y eso lo decide RLS.
+ */
+export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
+  const { supabase } = await requireUser()
+  const { activa } = await contextoDeCasa()
+
+  const [{ data: filasTiendas }, { data: filasTags }, { data: filasItems }] =
+    await Promise.all([
+      supabase
+        .from('stores')
+        .select('id, name, is_default')
+        .eq('house_id', activa.id)
+        .order('is_default', { ascending: false })
+        .order('name'),
+      supabase.from('tags').select('id, name').eq('house_id', activa.id).order('name'),
+      // RLS deja ver los items de TODAS mis casas: sin el filtro por
+      // house_id se mezclarían las listas de dos casas distintas.
+      supabase
+        .from('shopping_items')
+        .select(
+          'id, product_id, store_id, quantity, note, status, added_by, purchased_by, purchased_at, created_at',
+        )
+        .eq('house_id', activa.id)
+        .is('archived_at', null)
+        .order('created_at', { ascending: false }),
+    ])
+
+  const tiendas: TiendaVista[] = (filasTiendas ?? []).map((t) => ({
+    id: t.id,
+    nombre: t.name,
+    esPredeterminada: t.is_default,
+  }))
+  const tags: TagVista[] = (filasTags ?? []).map((t) => ({ id: t.id, nombre: t.name }))
+
+  const items = filasItems ?? []
+  const ids = items.map((i) => i.id)
+  const productIds = [...new Set(items.map((i) => i.product_id))]
+
+  // Sin condicionales: `in` con un arreglo vacío es válido y devuelve
+  // cero filas. Envolver esto en ternarios solo ensucia los tipos.
+  const [{ data: filasProductos }, { data: filasItemTags }, { data: filasFotos }, { data: filasPerfiles }] =
+    await Promise.all([
+      supabase.from('products').select('id, name').in('id', productIds),
+      supabase.from('item_tags').select('item_id, tag_id').in('item_id', ids),
+      supabase.from('item_photos').select('item_id').in('item_id', ids),
+      supabase.from('profiles').select('id, display_name'),
+    ])
+
+  const nombreProducto = new Map((filasProductos ?? []).map((p) => [p.id, p.name]))
+  const tiendaPorId = new Map(tiendas.map((t) => [t.id, t]))
+  const tagPorId = new Map(tags.map((t) => [t.id, t]))
+  const nombrePersona = new Map((filasPerfiles ?? []).map((p) => [p.id, p.display_name]))
+
+  const tagsPorItem = new Map<string, TagVista[]>()
+  for (const fila of filasItemTags ?? []) {
+    const tag = tagPorId.get(fila.tag_id)
+    if (!tag) continue
+    tagsPorItem.set(fila.item_id, [...(tagsPorItem.get(fila.item_id) ?? []), tag])
+  }
+
+  const fotosPorItem = new Map<string, number>()
+  for (const fila of filasFotos ?? []) {
+    fotosPorItem.set(fila.item_id, (fotosPorItem.get(fila.item_id) ?? 0) + 1)
+  }
+
+  const vistas: ItemVista[] = []
+  let pendientes = 0
+  let comprados = 0
+
+  for (const i of items) {
+    const tienda = tiendaPorId.get(i.store_id)
+    if (!tienda) continue
+
+    const comprado = i.status === 'purchased'
+    if (comprado) comprados += 1
+    else pendientes += 1
+
+    vistas.push({
+      id: i.id,
+      producto: nombreProducto.get(i.product_id) ?? 'Sin nombre',
+      cantidad: i.quantity,
+      nota: i.note,
+      comprado,
+      tienda,
+      tags: (tagsPorItem.get(i.id) ?? []).sort((a, b) => a.nombre.localeCompare(b.nombre)),
+      agregadoPor: (i.added_by && nombrePersona.get(i.added_by)) || 'Alguien',
+      compradoPor: (i.purchased_by && nombrePersona.get(i.purchased_by)) || null,
+      compradoEl: i.purchased_at,
+      fotos: fotosPorItem.get(i.id) ?? 0,
+    })
+  }
+
+  const filtrados = vistas.filter((item) => {
+    if (filtros.ver === 'pendientes' && item.comprado) return false
+    if (filtros.ver === 'comprados' && !item.comprado) return false
+    if (filtros.tienda && item.tienda.id !== filtros.tienda) return false
+    if (filtros.tag && !item.tags.some((t) => t.id === filtros.tag)) return false
+    if (filtros.q) {
+      const enNombre = contiene(item.producto, filtros.q)
+      const enNota = item.nota ? contiene(item.nota, filtros.q) : false
+      if (!enNombre && !enNota) return false
+    }
+    return true
+  })
+
+  // Agrupado por tienda: en el super lo que importa es "qué llevo de acá".
+  // Las compradas van al final de su grupo, no se sacan de la lista.
+  const grupos: GrupoVista[] = []
+  for (const tienda of tiendas) {
+    const suyos = filtrados.filter((i) => i.tienda.id === tienda.id)
+    if (suyos.length === 0) continue
+    suyos.sort((a, b) => Number(a.comprado) - Number(b.comprado))
+    grupos.push({ tienda, items: suyos })
+  }
+
+  return {
+    grupos,
+    tiendas,
+    tags,
+    pendientes,
+    comprados,
+    mostrados: filtrados.length,
+    listaVacia: vistas.length === 0,
+  }
+}
+
+export type DetalleItem = ItemVista & {
+  fotosDetalle: { id: string; ruta: string; tipo: 'producto' | 'etiqueta' }[]
+}
+
+export async function detalleDeItem(itemId: string): Promise<DetalleItem | null> {
+  const { supabase } = await requireUser()
+  const { activa } = await contextoDeCasa()
+
+  const { data: item } = await supabase
+    .from('shopping_items')
+    .select(
+      'id, product_id, store_id, quantity, note, status, added_by, purchased_by, purchased_at',
+    )
+    .eq('id', itemId)
+    .eq('house_id', activa.id)
+    .maybeSingle()
+
+  if (!item) return null
+
+  const [{ data: producto }, { data: tienda }, { data: filasTags }, { data: fotos }, { data: perfiles }] =
+    await Promise.all([
+      supabase.from('products').select('name').eq('id', item.product_id).maybeSingle(),
+      supabase
+        .from('stores')
+        .select('id, name, is_default')
+        .eq('id', item.store_id)
+        .maybeSingle(),
+      supabase.from('item_tags').select('tag_id').eq('item_id', item.id),
+      supabase
+        .from('item_photos')
+        .select('id, storage_path, kind')
+        .eq('item_id', item.id)
+        .order('created_at'),
+      supabase.from('profiles').select('id, display_name'),
+    ])
+
+  if (!tienda) return null
+
+  const ids = (filasTags ?? []).map((t) => t.tag_id)
+  const { data: tags } = await supabase
+    .from('tags')
+    .select('id, name')
+    .in('id', ids)
+    .order('name')
+
+  const nombrePersona = new Map((perfiles ?? []).map((p) => [p.id, p.display_name]))
+
+  return {
+    id: item.id,
+    producto: producto?.name ?? 'Sin nombre',
+    cantidad: item.quantity,
+    nota: item.note,
+    comprado: item.status === 'purchased',
+    tienda: { id: tienda.id, nombre: tienda.name, esPredeterminada: tienda.is_default },
+    tags: (tags ?? []).map((t) => ({ id: t.id, nombre: t.name })),
+    agregadoPor: (item.added_by && nombrePersona.get(item.added_by)) || 'Alguien',
+    compradoPor: (item.purchased_by && nombrePersona.get(item.purchased_by)) || null,
+    compradoEl: item.purchased_at,
+    fotos: (fotos ?? []).length,
+    fotosDetalle: (fotos ?? []).map((f) => ({
+      id: f.id,
+      ruta: f.storage_path,
+      tipo: f.kind,
+    })),
+  }
+}

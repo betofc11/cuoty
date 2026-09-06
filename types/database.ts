@@ -1,10 +1,3 @@
-/**
- * GENERADO desde el esquema real de Supabase. No editar a mano.
- *
- * Regenerar con el MCP de Supabase (`generate_typescript_types`) o con:
- *   npx supabase gen types typescript --project-id uhqgwhbuezfvaltgumap > types/database.ts
- */
-
 export type Json =
   | string
   | number
@@ -14,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -1083,6 +1078,17 @@ export type Database = {
       }
     }
     Functions: {
+      add_shopping_item: {
+        Args: {
+          p_house_id: string
+          p_name: string
+          p_note?: string
+          p_quantity?: string
+          p_store_id?: string
+          p_tag_ids?: string[]
+        }
+        Returns: string
+      }
       allocate_payment: { Args: { p_payment_id: string }; Returns: undefined }
       close_period: {
         Args: { p_period_id: string }
@@ -1095,6 +1101,12 @@ export type Database = {
           month: string
           status: Database["public"]["Enums"]["period_status"]
         }
+        SetofOptions: {
+          from: "*"
+          to: "periods"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       cr_month: { Args: { p_at?: string }; Returns: string }
       create_house: {
@@ -1105,6 +1117,12 @@ export type Database = {
           id: string
           join_code: string
           name: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "houses"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       current_actor: { Args: never; Returns: string }
@@ -1119,9 +1137,18 @@ export type Database = {
           month: string
           status: Database["public"]["Enums"]["period_status"]
         }
+        SetofOptions: {
+          from: "*"
+          to: "periods"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       generate_join_code: { Args: never; Returns: string }
-      generate_recurring_expenses: { Args: { p_period_id: string }; Returns: number }
+      generate_recurring_expenses: {
+        Args: { p_period_id: string }
+        Returns: number
+      }
       house_residue_admin: { Args: { p_house_id: string }; Returns: string }
       join_house: {
         Args: { p_code: string }
@@ -1131,6 +1158,12 @@ export type Database = {
           id: string
           join_code: string
           name: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "houses"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       register_payment: {
@@ -1153,6 +1186,12 @@ export type Database = {
           recorded_at: string
           recorded_by: string
           reverses_payment_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       split_expense_amount: {
