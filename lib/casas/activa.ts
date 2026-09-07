@@ -2,7 +2,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
 
-import { misCasas, type Casa } from '@/lib/auth/session'
+import { exigirNombre, misCasas, type Casa } from '@/lib/auth/session'
 
 export const COOKIE_CASA = 'cuoty_casa'
 
@@ -15,6 +15,11 @@ export const COOKIE_CASA = 'cuoty_casa'
  */
 export const contextoDeCasa = cache(
   async (): Promise<{ activa: Casa; casas: Casa[] }> => {
+    // Antes que la casa: es lo primero que se le pide a quien recién entra, y
+    // acá cae porque `Shell` llama a esto en toda página de la app. /bienvenida
+    // y /cuenta no lo llaman, así que no hay ciclo de redirects.
+    await exigirNombre()
+
     const casas = await misCasas()
 
     const primera = casas[0]

@@ -19,6 +19,50 @@ export const requireUser = cache(async () => {
   return { supabase, user }
 })
 
+export type Perfil = {
+  /** Vacío significa «todavía no lo puso», no «falló la consulta». */
+  nombre: string
+  avatarUrl: string | null
+}
+
+/**
+ * El nombre de quien está usando la app.
+ *
+ * Sale de `profiles`, NO de `user_metadata`: la metadata solo la llena Google.
+ * Todo el resto de la app —los saldos, «Quiénes están», el «registrado por» de
+ * cada abono— ya lee `profiles.display_name`. Con dos fuentes, quien entraba por
+ * correo se veía a sí mismo sin nombre mientras los demás lo veían con uno.
+ */
+export const perfilActual = cache(async (): Promise<Perfil> => {
+  const { supabase, user } = await requireUser()
+
+  // `maybeSingle` y no `single`: si por lo que sea no hay fila de perfil, esto
+  // tiene que devolver «sin nombre» y mandar a /bienvenida, no reventar la app.
+  const { data } = await supabase
+    .from('profiles')
+    .select('display_name, avatar_url')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  return {
+    nombre: (data?.display_name ?? '').trim(),
+    avatarUrl: data?.avatar_url ?? null,
+  }
+})
+
+/**
+ * Portón: sin nombre no se pasa.
+ *
+ * No es cosmético. `display_name` es lo que ve TODA la casa en la lista de
+ * saldos y en cada abono; dejar entrar a alguien sin nombre le ensucia la
+ * contabilidad al resto, no solo su propia pantalla.
+ */
+export async function exigirNombre(): Promise<string> {
+  const { nombre } = await perfilActual()
+  if (!nombre) redirect('/bienvenida')
+  return nombre
+}
+
 export type Casa = {
   membershipId: string
   id: string

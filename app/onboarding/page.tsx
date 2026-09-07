@@ -2,10 +2,15 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 import { Logo } from '@/components/ui/logo'
-import { misCasas, requireUser } from '@/lib/auth/session'
+import { exigirNombre, misCasas, requireUser } from '@/lib/auth/session'
 
 export default async function OnboardingPage() {
   const { user } = await requireUser()
+
+  // Esta página no pasa por `contextoDeCasa`, así que el portón del nombre hay
+  // que ponerlo a mano: si no, quien escribe la URL a dedo se lo salta.
+  await exigirNombre()
+
   const casas = await misCasas()
 
   // Ya tiene casa: acá no pinta nada.

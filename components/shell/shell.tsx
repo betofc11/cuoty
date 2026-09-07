@@ -1,4 +1,4 @@
-import { requireUser } from '@/lib/auth/session'
+import { perfilActual } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
 
 import { Navbar } from './navbar'
@@ -22,11 +22,12 @@ export async function Shell({
    */
   pie?: React.ReactNode
 }) {
-  const { user } = await requireUser()
+  const { nombre } = await perfilActual()
   const { activa, casas } = await contextoDeCasa()
 
-  const meta = user.user_metadata as { full_name?: string } | undefined
-  const inicial = (meta?.full_name ?? user.email ?? '?').trim().charAt(0).toUpperCase()
+  // `contextoDeCasa` ya exigió el nombre, así que acá siempre hay algo. El `?`
+  // es por si el perfil trae un nombre que empieza con algo raro.
+  const inicial = nombre.charAt(0).toUpperCase()
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col">

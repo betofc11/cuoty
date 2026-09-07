@@ -1,13 +1,19 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 
-import { enviarEnlace, entrarConGoogle, type EstadoLogin } from './actions'
+import {
+  enviarCodigo,
+  entrarConGoogle,
+  verificarCodigo,
+  type EstadoCodigo,
+  type EstadoLogin,
+} from './actions'
 
 function IconoGoogle() {
   return (
@@ -33,27 +39,85 @@ function IconoGoogle() {
 }
 
 export function LoginForm({ errorInicial }: { errorInicial?: string }) {
-  const [estado, accion, pendiente] = useActionState<EstadoLogin, FormData>(
-    enviarEnlace,
+  const [envio, accionEnviar, enviando] = useActionState<EstadoLogin, FormData>(
+    enviarCodigo,
+    {},
+  )
+  const [codigo, accionVerificar, verificando] = useActionState<EstadoCodigo, FormData>(
+    verificarCodigo,
     {},
   )
 
-  if (estado.enviadoA) {
+  // Escotilla para el dedo que se equivocó al escribir el correo: sin esto, una
+  // letra de más deja a la persona esperando un código que nunca va a llegar.
+  const [otroCorreo, setOtroCorreo] = useState(false)
+  const esperandoCodigo = Boolean(envio.enviadoA) && !otroCorreo
+
+  // Controlado y no `defaultValue`: React 19 limpia los campos del formulario
+  // después de correr la acción, así que ante cualquier error —el tope de envíos,
+  // sobre todo— el correo recién escrito se borraba y había que tipearlo entero
+  // otra vez en el teléfono. Un `defaultValue` nuevo no lo arregla: el input ya
+  // está montado y React no le vuelve a mirar ese atributo.
+  const [correo, setCorreo] = useState('')
+
+  if (esperandoCodigo) {
     return (
       <div className="flex flex-col gap-6">
+        <OfflineBanner />
+
         <Alert tono="ok">
-          Te mandamos un enlace a <strong>{estado.enviadoA}</strong>.
+          Te mandamos un código a{' '}
+          {/* `break-all` además del `break-words` de Alert: un correo largo es
+              una sola palabra sin espacios, y el punto final suelto al cortarse
+              parecía un error de dedo — por eso tampoco lleva. */}
+          <strong className="break-all">{envio.enviadoA}</strong>
         </Alert>
-        <p className="text-tinta-suave text-base">
-          Abrilo desde este mismo teléfono. Si no llega en un par de minutos, revisá el
-          correo no deseado.
-        </p>
-        <form action={accion}>
-          <input type="hidden" name="correo" value={estado.enviadoA} />
-          <Button variante="secundario" type="submit" disabled={pendiente}>
-            {pendiente ? 'Enviando…' : 'Reenviar el enlace'}
+
+        {codigo.error ? <Alert tono="error">{codigo.error}</Alert> : null}
+        {envio.error ? <Alert tono="error">{envio.error}</Alert> : null}
+
+        <form action={accionVerificar} className="flex flex-col gap-4">
+          <input type="hidden" name="correo" value={envio.enviadoA} />
+          <Field
+            id="codigo"
+            name="codigo"
+            label="El código del correo"
+            // Con esto iOS ofrece el código sobre el teclado apenas llega el
+            // correo: no hay que salir de la app ni acordarse del número.
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            // 10 y no 6: «Email OTP Length» se configura en Supabase entre 6 y
+            // 10, y este proyecto la tiene en 8. Con `maxLength={6}` el campo
+            // cortaba el código bueno y no dejaba entrar. Ni el largo ni el
+            // texto de abajo dicen cuántos son: eso lo manda el panel, no el
+            // código, y una cifra equivocada acá confunde más que ayudar.
+            maxLength={10}
+            required
+            autoFocus
+            className="text-center text-2xl font-semibold tracking-[0.5em]"
+            hint="Si no llega en un par de minutos, revisá el correo no deseado."
+          />
+          <Button type="submit" disabled={verificando}>
+            {verificando ? 'Entrando…' : 'Entrar'}
           </Button>
         </form>
+
+        <div className="flex flex-col gap-3">
+          <form action={accionEnviar}>
+            <input type="hidden" name="correo" value={envio.enviadoA} />
+            <Button variante="secundario" type="submit" disabled={enviando}>
+              {enviando ? 'Enviando…' : 'Reenviar el código'}
+            </Button>
+          </form>
+
+          <button
+            type="button"
+            onClick={() => setOtroCorreo(true)}
+            className="min-h-touch text-crc text-base font-semibold"
+          >
+            Usar otro correo
+          </button>
+        </div>
       </div>
     )
   }
@@ -63,9 +127,9 @@ export function LoginForm({ errorInicial }: { errorInicial?: string }) {
       <OfflineBanner />
 
       {errorInicial ? <Alert tono="error">{errorInicial}</Alert> : null}
-      {estado.error ? <Alert tono="error">{estado.error}</Alert> : null}
+      {envio.error ? <Alert tono="error">{envio.error}</Alert> : null}
 
-      <form action={accion} className="flex flex-col gap-4">
+      <form action={accionEnviar} className="flex flex-col gap-4">
         <Field
           id="correo"
           name="correo"
@@ -75,10 +139,18 @@ export function LoginForm({ errorInicial }: { errorInicial?: string }) {
           autoComplete="email"
           inputMode="email"
           required
-          hint="Te mandamos un enlace para entrar. No hay contraseña que recordar."
+          value={correo}
+          onChange={(e) => setCorreo(e.target.value)}
+          hint="Te mandamos un código para entrar. No hay contraseña que recordar, y si es tu primera vez la cuenta se crea sola."
         />
-        <Button type="submit" disabled={pendiente}>
-          {pendiente ? 'Enviando…' : 'Enviarme el enlace'}
+        <Button
+          type="submit"
+          disabled={enviando}
+          // Vuelve al paso del código cuando termine este envío. Va en el botón
+          // y no en un `onSubmit` del form para no pelear con el `action`.
+          onClick={() => setOtroCorreo(false)}
+        >
+          {enviando ? 'Enviando…' : 'Enviarme el código'}
         </Button>
       </form>
 

@@ -4,6 +4,9 @@ export function Field({
   label,
   hint,
   id,
+  // Sale del spread a propósito: con `{...props}` después del `className` de
+  // abajo, pasarle uno propio BORRABA los estilos base en vez de sumarse.
+  className = '',
   ...props
 }: ComponentProps<'input'> & { label: string; hint?: string }) {
   const hintId = hint ? `${id}-hint` : undefined
@@ -16,9 +19,9 @@ export function Field({
       <input
         id={id}
         aria-describedby={hintId}
-        className="min-h-touch border-borde bg-superficie-alta text-tinta
+        className={`min-h-touch border-borde bg-superficie-alta text-tinta
                    placeholder:text-tinta-suave focus:border-crc rounded-2xl border
-                   px-4 text-base outline-none"
+                   px-4 text-base outline-none ${className}`}
         {...props}
       />
       {hint ? (
