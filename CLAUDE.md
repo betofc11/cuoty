@@ -21,7 +21,11 @@ Romper cualquiera de estas es un bug, aunque el código compile.
    `forbid_mutation` lo refuerza. Corregir = asiento compensatorio nuevo.
    De ahí sale que los gastos se **anulan** (`voided_at`), no se borran.
 3. **`period_carryovers` es una foto congelada**, para mostrar y auditar. Nunca es
-   insumo del cálculo del saldo.
+   insumo del cálculo del saldo. Y ojo: **congelada de verdad.** Se escribe al
+   cerrar y nunca se actualiza, pero un mes cerrado **sigue recibiendo abonos**
+   (`allocate_payment` no mira el estado del período). Apenas alguien abona, la
+   foto deja de ser lo que se debe. Para «cuánto falta de ese mes» va
+   `period_balances`; el carryover solo dice cuánto había *al cerrar*.
 4. **CRC y USD jamás se suman.** Lo impide el tipo (`NoInfer` en el segundo operando
    de `add`/`subtract` en `lib/money`), un guard en runtime, y `MoneyPair` para
    mostrarlos en paralelo. `lib/money/money.type-test.ts` es un guardia permanente:
@@ -179,6 +183,42 @@ empaquete: los diseños no van a producción.
   aunque los archivos generados estén bien. La entrada `typecheck` de
   `launch.json` corre con `--incremental false` justo por eso.
 - **Comentarios**: `/* ... */` dentro de un bloque `/** ... */` lo cierra antes.
+- **`close_period` hace dos cosas de más**: crea el período siguiente si no existe y
+  le corre `generate_recurring_expenses`. Al cerrar meses viejos en lote, el último
+  cierre apunta al mes vivo. No duplica —la función se salta la plantilla que ya
+  tiene gasto en ese período— pero si una plantilla todavía no se generó ahí, se
+  genera sola. Revisá `recurring_templates` antes de cerrar nada en lote.
+- **Impersonar en SQL de verdad** (lo que el MCP corre como `postgres` bypassea RLS):
+  poné los dos `set_config` en el `FROM` y la consulta real en un `LATERAL`, que se
+  evalúa después — en la lista de columnas del `SELECT` el orden no está garantizado.
+
+  ```sql
+  select v.* from (
+    select set_config('request.jwt.claims',
+             json_build_object('sub','<user_id>','role','authenticated')::text, true),
+           set_config('role','authenticated', true)
+  ) s, lateral ( /* la consulta */ ) v;
+  ```
+
+  Sin el claim, `app.is_house_admin` da false y `close_period` levanta 42501. Para la
+  autoría alcanza `cuoty.actor_id`, que `current_actor()` mira antes que `auth.uid()`.
+- **Los asientos de una misma transacción comparten `created_at`**: `now()` es el
+  arranque de la transacción, no del `insert`. En `/saldos/[id]` salen en orden
+  arbitrario entre ellos. Si el orden importa, separá las transacciones.
+- **Las tarjetas de arrastre mostraban la foto del cierre, no lo que falta.** Un
+  mes cerrado y después abonado seguía anunciando «1 miembro debe ₡16.604» ya
+  saldado, y la tarjeta no desaparecía nunca: `close_period` solo escribe
+  carryovers distintos de cero, así que el filtro `monto === 0` no descartaba
+  nada. Ahora el monto sale de `period_balances` y el carryover se muestra como
+  línea secundaria solo cuando difiere. Las dos fuentes tienen **la misma policy**
+  (admin ve la casa, miembro solo lo suyo), así que el cambio no movió los
+  alcances. Queda un borde preexistente: un saldo **a favor** cuenta como
+  «miembro debe», porque solo se filtra el cero.
+- **Los buffers de `read_console_messages` y `preview_logs` son acumulativos.** Un
+  error de un render intermedio —típico entre dos ediciones, cuando el JSX ya usa
+  algo que todavía no se importó— sigue apareciendo después de arreglarlo, y
+  `console.clear()` no lo borra. Antes de perseguirlo, mirá si el conteo *crece*
+  al navegar de nuevo y si el `GET` da 200.
 
 ## Estado y huecos conocidos
 
@@ -195,6 +235,15 @@ Pendiente:
   marcar comprado necesita red. Una cola de sincronización es una función aparte.
 - Rotar el código de invitación y sacar miembros (la pantalla `/casa` lo dice).
 - UI de reversa/devolución de abonos.
+- **No hay forma de cargar deuda vieja desde la UI**, la de antes de empezar a usar
+  la app. El rodeo, ya usado en Fonseca Cerdas (mayo–agosto 2026 de Eugenia): crear
+  el período, meter un gasto en una lista que sea 100% de esa persona y cerrarlo con
+  `close_period`. Conviene sobre un asiento suelto porque el gasto se puede **anular**
+  desde `/gastos` si el monto salió mal, y el asiento suelto no se corrige por
+  ningún lado. Ojo: anular exige el mes abierto, y **no hay `reopen_period` ni botón
+  para reabrir** — se reabre por SQL (`periods` sí tiene policy de UPDATE para el
+  admin, y el check `periods_closed_shape` acepta volver a `open` con `closed_at`
+  y `closed_by` en NULL).
 - «Leaked password protection» sigue apagada en Supabase (la app no usa contraseñas).
 - `Shell` es un componente y no `app/(app)/layout.tsx`, porque `app/page.tsx` ocupa `/`.
 

@@ -8,6 +8,7 @@ import { OfflineBanner } from '@/components/ui/offline-banner'
 import { contextoDeCasa } from '@/lib/casas/activa'
 import { claveDeMes, diaYMes, fechaCorta, nombreDeMes } from '@/lib/fechas'
 import { vistaDeGastos } from '@/lib/gastos/consultas'
+import { isZero } from '@/lib/money'
 
 export default async function GastosPage({
   searchParams,
@@ -105,7 +106,7 @@ export default async function GastosPage({
           </details>
         ) : null}
 
-        {/* Arrastre: foto congelada, no una lista de gastos más. */}
+        {/* Arrastre: saldo vivo de un mes cerrado, no una lista de gastos más. */}
         {vista.arrastres.map((a) => (
           <section
             key={a.periodoId}
@@ -126,9 +127,20 @@ export default async function GastosPage({
               <ParDeMontos par={a.monto} tamano="normal" />
             </div>
             <p className="text-tinta-suave text-sm">
-              Lo que quedó sin abonar en {nombreDeMes(a.mes, { conAnio: false }).toLowerCase()}.
+              Lo que todavía falta de {nombreDeMes(a.mes, { conAnio: false }).toLowerCase()}.
               Se cobra junto con este mes y no se le agregan gastos nuevos.
             </p>
+            {/* La foto del cierre, solo si ya abonaron algo: sin esto el número
+                de arriba parece contradecir lo que se vio al cerrar el mes. */}
+            {a.alCerrar ? (
+              <p className="text-tinta-suave text-sm">
+                Al cerrarlo quedaban{' '}
+                {!isZero(a.alCerrar.CRC) ? <Monto monto={a.alCerrar.CRC} tamano="chico" /> : null}
+                {!isZero(a.alCerrar.CRC) && !isZero(a.alCerrar.USD) ? ' y ' : null}
+                {!isZero(a.alCerrar.USD) ? <Monto monto={a.alCerrar.USD} tamano="chico" /> : null}
+                {' '}· ya abonaron la diferencia.
+              </p>
+            ) : null}
           </section>
         ))}
 
