@@ -51,7 +51,7 @@ function sobre(color, alfa, fondo) {
   return color.map((c, i) => alfa * c + (1 - alfa) * fondo[i])
 }
 
-/** `color-mix(in oklab, a p, b)`, como lo usan las etiquetas y el panel de filtros. */
+/** `color-mix(in oklab, a p, b)`, como lo usa el panel de filtros. */
 function mezclaOklab(a, p, b) {
   const aOklab = (rgb) => {
     const [r, g, bl] = rgb.map(lineal)
@@ -112,8 +112,6 @@ function pares(t) {
 
   // Tienda activa: `bg-tinta text-fondo`.
   lista.push(['fondo / tinta', c('fondo'), c('tinta'), TEXTO])
-  // Badge de tienda: `bg-borde-suave text-tinta-suave`.
-  lista.push(['tinta-suave / borde-suave', c('tinta-suave'), c('borde-suave'), TEXTO])
   // Rol «Admin»: `bg-borde-suave text-tinta`.
   lista.push(['tinta / borde-suave', c('tinta'), c('borde-suave'), TEXTO])
   // «Terminar el mes» y otras filas con tinte de marca.
@@ -137,17 +135,10 @@ function pares(t) {
     TEXTO,
   ])
 
-  // Etiquetas: el badge (tono sobre su tinte al 15%) y el chip activo
+  // Etiquetas: el chip de la etiqueta puesta en los filtros de Compras
   // (superficie-alta sobre el tono lleno). Ver lib/compras/tonos.ts.
   for (let n = 1; n <= 8; n++) {
-    const tono = c(`etiqueta-${n}`)
-    lista.push([
-      `etiqueta-${n} / su tinte`,
-      tono,
-      mezclaOklab(tono, 0.15, c('superficie-alta')),
-      TEXTO,
-    ])
-    lista.push([`superficie-alta / etiqueta-${n}`, c('superficie-alta'), tono, TEXTO])
+    lista.push([`superficie-alta / etiqueta-${n}`, c('superficie-alta'), c(`etiqueta-${n}`), TEXTO])
   }
 
   // Avatares: la inicial en la tinta de la persona sobre su fondo pálido.
