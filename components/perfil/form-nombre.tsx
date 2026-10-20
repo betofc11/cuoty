@@ -21,7 +21,7 @@ export function FormNombre({
 }: {
   valorInicial?: string
   textoBoton: string
-  /** Al guardar, continuar al dashboard en vez de quedarse. */
+  /** Al guardar, continuar al inicio en vez de quedarse. */
   seguir?: boolean
   enfocar?: boolean
   hint?: string

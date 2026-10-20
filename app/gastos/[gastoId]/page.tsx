@@ -61,7 +61,7 @@ export default async function GastoPage({
   const anulado = gasto.voided_at !== null
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col gap-6 p-4 py-5">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-6 px-4 pt-5 pb-seguro">
       <BackLink href="/gastos">Volver</BackLink>
 
       <header className="flex flex-col gap-2">
@@ -70,7 +70,7 @@ export default async function GastoPage({
           {esAdmin && !anulado ? (
             <Link
               href={`/gastos/${gasto.id}/editar`}
-              className="min-h-touch text-crc flex shrink-0 items-center px-2 text-base font-semibold"
+              className="min-h-touch text-marca flex shrink-0 items-center px-2 text-base font-semibold"
             >
               Editar
             </Link>

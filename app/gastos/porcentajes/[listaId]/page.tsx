@@ -21,7 +21,7 @@ export default async function PorcentajesPage({
   if (!vista) notFound()
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col gap-5 p-4 py-5">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-5 px-4 pt-5 pb-seguro">
       <BackLink href="/gastos">Volver</BackLink>
       <EditorPorcentajes vista={vista} />
     </div>

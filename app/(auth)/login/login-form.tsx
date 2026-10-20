@@ -113,7 +113,7 @@ export function LoginForm({ errorInicial }: { errorInicial?: string }) {
           <button
             type="button"
             onClick={() => setOtroCorreo(true)}
-            className="min-h-touch text-crc text-base font-semibold"
+            className="min-h-touch text-marca text-base font-semibold"
           >
             Usar otro correo
           </button>

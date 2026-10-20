@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { SaldoPar } from '@/components/dinero/saldo'
+import { AccionFija } from '@/components/ui/accion-fija'
 import { BackLink } from '@/components/ui/back-link'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { contextoDeCasa } from '@/lib/casas/activa'
@@ -24,7 +25,7 @@ export default async function SaldoDeMiembroPage({
   const alDia = isZero(detalle.saldo.CRC) && isZero(detalle.saldo.USD)
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col gap-6 p-4 py-5">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-6 px-4 pt-5 pb-seguro">
       <BackLink href="/saldos">Volver</BackLink>
       <OfflineBanner />
 
@@ -100,7 +101,7 @@ export default async function SaldoDeMiembroPage({
                 </span>
                 <span
                   className={`shrink-0 text-base font-semibold ${
-                    mov.reduce ? 'text-ok' : mov.monto.currency === 'CRC' ? 'text-crc' : 'text-usd'
+                    mov.reduce ? 'text-ok' : 'text-tinta'
                   }`}
                 >
                   {mov.reduce ? '+' : ''}
@@ -119,13 +120,15 @@ export default async function SaldoDeMiembroPage({
 
       {/* Invariante 3: el miembro no tiene ninguna acción de pago. */}
       {esAdmin && !alDia ? (
-        <Link
-          href={`/saldos/${detalle.membershipId}/abonar`}
-          className="min-h-touch bg-crc flex items-center justify-center rounded-2xl px-5
-                     text-base font-semibold text-white"
-        >
-          Registrar {detalle.movimientos.some((m) => m.clase === 'abono') ? 'otro ' : ''}abono
-        </Link>
+        <AccionFija>
+          <Link
+            href={`/saldos/${detalle.membershipId}/abonar`}
+            className="min-h-touch bg-marca flex items-center justify-center rounded-2xl px-5
+                       text-base font-semibold text-sobre-relleno"
+          >
+            Registrar {detalle.movimientos.some((m) => m.clase === 'abono') ? 'otro ' : ''}abono
+          </Link>
+        </AccionFija>
       ) : null}
     </div>
   )

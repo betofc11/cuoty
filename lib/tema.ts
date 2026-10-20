@@ -29,5 +29,5 @@ export function claseDeTema(tema: Tema): string {
 }
 
 /** Los mismos hex de `globals.css`. Si cambian allá, cambian acá. */
-export const FONDO_CLARO = '#efe9e1'
+export const FONDO_CLARO = '#efede9'
 export const FONDO_OSCURO = '#1a1613'

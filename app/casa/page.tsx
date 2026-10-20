@@ -28,7 +28,7 @@ export default async function CasaPage() {
   const nombrePorId = new Map((perfiles ?? []).map((p) => [p.id, p.display_name]))
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col gap-6 p-4 py-5">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-6 px-4 pt-5 pb-seguro">
       <BackLink href="/">Volver</BackLink>
 
       <header className="flex items-center gap-3">
@@ -97,7 +97,7 @@ export default async function CasaPage() {
                 </span>
                 <span
                   className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${
-                    m.role === 'admin' ? 'bg-crc-tenue text-crc' : 'text-tinta-suave'
+                    m.role === 'admin' ? 'bg-borde-suave text-tinta' : 'text-tinta-suave'
                   }`}
                 >
                   {m.role === 'admin' ? 'Admin' : 'Miembro'}

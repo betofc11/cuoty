@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 
+import { AccionFija } from '@/components/ui/accion-fija'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import type { DetalleItem, TagVista, TiendaVista } from '@/lib/compras/consultas'
@@ -73,7 +74,7 @@ export function EditorItem({
             id="tiendaId"
             name="tiendaId"
             defaultValue={item.tienda.id}
-            className="min-h-touch border-borde bg-superficie-alta text-tinta focus:border-crc
+            className="min-h-touch border-borde-control bg-superficie-alta text-tinta focus:border-marca focus:ring-marca focus:ring-1
                        rounded-2xl border px-4 text-base outline-none"
           >
             {tiendas.map((t) => (
@@ -94,8 +95,8 @@ export function EditorItem({
             defaultValue={item.cantidad ?? ''}
             placeholder="2 kg, 3 unidades…"
             autoComplete="off"
-            className="min-h-touch border-borde bg-superficie-alta text-tinta
-                       placeholder:text-tinta-suave focus:border-crc rounded-2xl border
+            className="min-h-touch border-borde-control bg-superficie-alta text-tinta
+                       placeholder:text-tinta-suave focus:border-marca focus:ring-marca focus:ring-1 rounded-2xl border
                        px-4 text-base outline-none"
           />
           <p className="text-tinta-suave text-sm">
@@ -113,8 +114,8 @@ export function EditorItem({
             defaultValue={item.nota ?? ''}
             rows={2}
             placeholder="La marca verde, no la azul"
-            className="border-borde bg-superficie-alta text-tinta placeholder:text-tinta-suave
-                       focus:border-crc rounded-2xl border p-4 text-base outline-none"
+            className="border-borde-control bg-superficie-alta text-tinta placeholder:text-tinta-suave
+                       focus:border-marca focus:ring-marca focus:ring-1 rounded-2xl border p-4 text-base outline-none"
           />
         </div>
 
@@ -125,9 +126,10 @@ export function EditorItem({
               {tags.map((t) => (
                 <label
                   key={t.id}
-                  className="min-h-touch border-borde has-[:checked]:border-crc
-                             has-[:checked]:bg-crc-tenue has-[:checked]:text-crc
-                             has-[:checked]:font-semibold text-tinta-suave flex cursor-pointer
+                  className="min-h-touch border-borde has-[:checked]:border-tinta
+                             has-[:checked]:ring-tinta has-[:checked]:bg-superficie-alta
+                             has-[:checked]:text-tinta has-[:checked]:font-semibold
+                             has-[:checked]:ring-1 text-tinta-suave flex cursor-pointer
                              items-center gap-2 rounded-full border px-4 text-base"
                 >
                   <input
@@ -135,7 +137,7 @@ export function EditorItem({
                     name="tagIds"
                     value={t.id}
                     defaultChecked={puestos.has(t.id)}
-                    className="accent-crc size-4"
+                    className="accent-tinta size-4"
                   />
                   {t.nombre}
                 </label>
@@ -147,9 +149,11 @@ export function EditorItem({
         {estado.error ? <Alert tono="error">{estado.error}</Alert> : null}
         {estado.ok ? <Alert tono="ok">{estado.ok}</Alert> : null}
 
-        <Button type="submit" disabled={pendiente}>
-          {pendiente ? 'Guardando…' : 'Guardar cambios'}
-        </Button>
+        <AccionFija>
+          <Button type="submit" disabled={pendiente}>
+            {pendiente ? 'Guardando…' : 'Guardar cambios'}
+          </Button>
+        </AccionFija>
       </form>
 
       <form action={borrarItem} className="border-borde border-t pt-2">

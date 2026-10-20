@@ -7,7 +7,7 @@ const base =
   'text-base font-semibold transition disabled:opacity-60'
 
 const variantes: Record<Variante, string> = {
-  primario: 'bg-crc text-white active:brightness-95',
+  primario: 'bg-marca text-sobre-relleno active:brightness-95',
   secundario: 'border-borde bg-superficie-alta text-tinta border active:brightness-95',
 }
 

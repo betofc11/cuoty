@@ -28,7 +28,7 @@ export default async function CerrarMesPage({
   const cortoSig = nombreDeMes(vista.mesSiguiente, { conAnio: false }).toLowerCase()
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col gap-6 p-4 py-5">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-6 px-4 pt-5 pb-seguro">
       <BackLink href={`/gastos?mes=${claveDeMes(vista.mes)}`}>Volver</BackLink>
 
       <header className="flex flex-col gap-2">

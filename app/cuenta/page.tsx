@@ -12,7 +12,7 @@ export default async function CuentaPage() {
   const tema = await temaActual()
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col gap-6 p-4 py-5">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-6 px-4 pt-5 pb-seguro">
       <BackLink href="/">Volver</BackLink>
 
       <header className="flex flex-col gap-1">

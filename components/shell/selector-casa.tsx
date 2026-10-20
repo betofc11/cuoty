@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 
 import { cambiarCasa } from '@/app/acciones/casa'
+import { Hoja } from '@/components/ui/hoja'
 import type { Casa } from '@/lib/auth/session'
 import { colorDeCasa, inicialDeCasa } from '@/lib/casas/color'
 
@@ -42,29 +43,32 @@ function IconoTuerca() {
   )
 }
 
-function FilaCasa({ casa, esActiva }: { casa: Casa; esActiva: boolean }) {
+const FILA = 'min-h-touch active:bg-superficie flex w-full items-center gap-3 px-4 py-3 text-left'
+
+function TextoDeFila({ casa, linea }: { casa: Casa; linea: string }) {
+  return (
+    <span className="flex min-w-0 flex-col">
+      <span className="text-tinta truncate text-base font-semibold">{casa.nombre}</span>
+      <span className="text-tinta-suave text-sm">{linea}</span>
+    </span>
+  )
+}
+
+function FilaCasa({ casa }: { casa: Casa }) {
   const { pending } = useFormStatus()
 
   return (
-    <button
-      type="submit"
-      className="min-h-touch active:bg-superficie flex w-full items-center gap-3 px-4 py-3 text-left"
-    >
+    <button type="submit" className={FILA}>
       <Chip casa={casa} />
-      <span className="flex min-w-0 flex-col">
-        <span className="text-tinta truncate text-base font-semibold">{casa.nombre}</span>
-        <span className="text-tinta-suave text-sm">
-          {pending ? `Cargando ${casa.nombre}…` : rotulo(casa, esActiva)}
-        </span>
-      </span>
+      <TextoDeFila casa={casa} linea={pending ? `Cargando ${casa.nombre}…` : rotulo(casa, false)} />
     </button>
   )
 }
 
 /**
- * Única excepción a "los íconos siempre van con texto": la tuerca del dropdown
- * de casas. Zona propia de 56px con separador, y tocarla TAMBIÉN cambia la casa
- * activa — no solo abre los ajustes.
+ * Única excepción a "los íconos siempre van con texto": la tuerca de las casas.
+ * Zona propia de 56px con separador, y tocarla TAMBIÉN cambia la casa activa —
+ * no solo abre los ajustes.
  */
 function BotonTuerca({ nombre }: { nombre: string }) {
   const { pending } = useFormStatus()
@@ -89,14 +93,22 @@ function BotonTuerca({ nombre }: { nombre: string }) {
 export function SelectorCasa({ activa, casas }: { activa: Casa; casas: Casa[] }) {
   const [abierto, setAbierto] = useState(false)
   const unaSola = casas.length === 1
+  const cerrar = () => setAbierto(false)
+
+  // Este selector vive en el layout de las tabs y ya no se desmonta al navegar.
+  // Elegir otra casa la vuelve a pintar con `activa` nueva: ahí se cierra la
+  // hoja. Elegir la que ya está activa no pasa por el servidor (abajo).
+  useEffect(() => {
+    setAbierto(false)
+  }, [activa.id])
 
   return (
-    <div className="relative flex-1">
+    <div className="flex-1">
       <button
         type="button"
-        onClick={() => setAbierto((v) => !v)}
+        onClick={() => setAbierto(true)}
         aria-expanded={abierto}
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
         className="min-h-touch flex w-full items-center gap-2 py-1 pl-2 text-left"
       >
         <span
@@ -118,100 +130,80 @@ export function SelectorCasa({ activa, casas }: { activa: Casa; casas: Casa[] })
         </span>
       </button>
 
-      {abierto ? (
-        <>
-          <button
-            type="button"
-            aria-label="Cerrar el selector de casas"
-            onClick={() => setAbierto(false)}
-            className="fixed inset-0 z-10 cursor-default"
-          />
+      <Hoja abierta={abierto} onCerrar={cerrar} titulo={unaSola ? 'Mi casa' : 'Mis casas'}>
+        <ul className="border-borde-suave divide-borde-suave divide-y border-t">
+          {casas.map((casa) => {
+            const esActiva = casa.id === activa.id
 
-          <div
-            className="border-borde bg-superficie-alta absolute top-full left-0 z-20 mt-2
-                       w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border shadow-lg"
+            // La tuerca solo donde soy admin. Donde soy miembro no existe.
+            // Va aunque haya una sola casa: /casa es el único lugar donde vive
+            // el código para invitar, y sin ella quien recién crea su casa no
+            // puede sumar a nadie.
+            const tuerca =
+              casa.rol !== 'admin' ? null : unaSola ? (
+                <Link
+                  href="/casa"
+                  aria-label={`Ajustes de ${casa.nombre}`}
+                  onClick={cerrar}
+                  className="border-borde-suave active:bg-superficie text-tinta-suave
+                             flex w-14 items-center justify-center self-stretch border-l"
+                >
+                  <IconoTuerca />
+                </Link>
+              ) : (
+                <form action={cambiarCasa} className="border-borde-suave flex border-l">
+                  <input type="hidden" name="casaId" value={casa.id} />
+                  <input type="hidden" name="destino" value="/casa" />
+                  <BotonTuerca nombre={casa.nombre} />
+                </form>
+              )
+
+            return (
+              <li key={casa.id} className="flex items-stretch">
+                {unaSola ? (
+                  // Con una sola casa no hay nada que elegir: la fila no es un
+                  // control. Un botón deshabilitado sería peor que no tenerlo.
+                  <span className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3">
+                    <Chip casa={casa} />
+                    <TextoDeFila casa={casa} linea={rotulo(casa, true)} />
+                  </span>
+                ) : esActiva ? (
+                  // La que ya está activa solo cierra: mandarla al servidor no
+                  // cambia la casa, así que la hoja no tendría por qué cerrarse.
+                  <button type="button" onClick={cerrar} className={`${FILA} min-w-0 flex-1`}>
+                    <Chip casa={casa} />
+                    <TextoDeFila casa={casa} linea={rotulo(casa, true)} />
+                  </button>
+                ) : (
+                  <form action={cambiarCasa} className="min-w-0 flex-1">
+                    <input type="hidden" name="casaId" value={casa.id} />
+                    <input type="hidden" name="destino" value="/" />
+                    <FilaCasa casa={casa} />
+                  </form>
+                )}
+                {tuerca}
+              </li>
+            )
+          })}
+        </ul>
+
+        <div className="border-borde flex flex-col border-t">
+          <Link
+            href="/onboarding/unirme"
+            onClick={cerrar}
+            className="min-h-touch text-marca active:bg-superficie flex items-center px-4 text-base font-semibold"
           >
-            <p className="text-tinta-suave px-4 pt-4 pb-2 text-xs font-semibold tracking-wide uppercase">
-              {unaSola ? 'Mi casa' : 'Mis casas'}
-            </p>
-
-            <ul className="divide-borde-suave divide-y">
-              {casas.map((casa) => {
-                const esActiva = casa.id === activa.id
-
-                // Con una sola casa no hay nada que elegir: la fila no es un
-                // control. Un botón deshabilitado sería peor que no tenerlo.
-                if (unaSola) {
-                  return (
-                    <li key={casa.id} className="flex items-stretch">
-                      <span className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3">
-                        <Chip casa={casa} />
-                        <span className="flex min-w-0 flex-col">
-                          <span className="text-tinta truncate text-base font-semibold">
-                            {casa.nombre}
-                          </span>
-                          <span className="text-tinta-suave text-sm">
-                            {rotulo(casa, true)}
-                          </span>
-                        </span>
-                      </span>
-
-                      {/* La tuerca SÍ va, aunque no haya nada que elegir: /casa es
-                          el único lugar donde vive el código para invitar. Sin
-                          ella, quien recién crea su casa no puede sumar a nadie. */}
-                      {casa.rol === 'admin' ? (
-                        <Link
-                          href="/casa"
-                          aria-label={`Ajustes de ${casa.nombre}`}
-                          onClick={() => setAbierto(false)}
-                          className="border-borde-suave active:bg-superficie text-tinta-suave
-                                     flex w-14 items-center justify-center self-stretch border-l"
-                        >
-                          <IconoTuerca />
-                        </Link>
-                      ) : null}
-                    </li>
-                  )
-                }
-
-                return (
-                  <li key={casa.id} className="flex items-stretch">
-                    <form action={cambiarCasa} className="min-w-0 flex-1">
-                      <input type="hidden" name="casaId" value={casa.id} />
-                      <input type="hidden" name="destino" value="/" />
-                      <FilaCasa casa={casa} esActiva={esActiva} />
-                    </form>
-
-                    {/* La tuerca solo donde soy admin. Donde soy miembro no existe. */}
-                    {casa.rol === 'admin' ? (
-                      <form action={cambiarCasa} className="border-borde-suave flex border-l">
-                        <input type="hidden" name="casaId" value={casa.id} />
-                        <input type="hidden" name="destino" value="/casa" />
-                        <BotonTuerca nombre={casa.nombre} />
-                      </form>
-                    ) : null}
-                  </li>
-                )
-              })}
-            </ul>
-
-            <div className="border-borde flex flex-col border-t">
-              <Link
-                href="/onboarding/unirme"
-                className="min-h-touch text-crc active:bg-superficie flex items-center px-4 text-base font-semibold"
-              >
-                Unirme a otra casa
-              </Link>
-              <Link
-                href="/onboarding/crear"
-                className="min-h-touch text-crc active:bg-superficie flex items-center px-4 text-base font-semibold"
-              >
-                Crear casa
-              </Link>
-            </div>
-          </div>
-        </>
-      ) : null}
+            Unirme a otra casa
+          </Link>
+          <Link
+            href="/onboarding/crear"
+            onClick={cerrar}
+            className="min-h-touch text-marca active:bg-superficie flex items-center px-4 text-base font-semibold"
+          >
+            Crear casa
+          </Link>
+        </div>
+      </Hoja>
     </div>
   )
 }

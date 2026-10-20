@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from 'react'
 
 import { registrarAbono, type EstadoAbono } from '@/app/saldos/acciones'
+import { AccionFija } from '@/components/ui/accion-fija'
 import { Alert } from '@/components/ui/alert'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { nombreDeMes } from '@/lib/fechas'
@@ -93,15 +94,13 @@ export function FormAbono({
               className={`min-h-touch flex flex-1 flex-col items-center justify-center
                           rounded-2xl border py-2 ${
                             moneda === m
-                              ? m === 'CRC'
-                                ? 'border-crc bg-crc-tenue'
-                                : 'border-usd bg-usd-tenue'
+                              ? 'border-tinta ring-tinta bg-superficie-alta ring-1'
                               : 'border-borde'
                           }`}
             >
               <span
                 className={`text-base font-semibold ${
-                  moneda === m ? (m === 'CRC' ? 'text-crc' : 'text-usd') : 'text-tinta-suave'
+                  moneda === m ? 'text-tinta' : 'text-tinta-suave'
                 }`}
               >
                 {m === 'CRC' ? 'Colones' : 'Dólares'}
@@ -119,10 +118,7 @@ export function FormAbono({
           Monto del abono
         </label>
         <div className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className={`text-3xl font-semibold ${moneda === 'CRC' ? 'text-crc' : 'text-usd'}`}
-          >
+          <span aria-hidden="true" className="text-tinta text-3xl font-semibold">
             {moneda === 'CRC' ? '₡' : '$'}
           </span>
           <input
@@ -134,8 +130,8 @@ export function FormAbono({
             placeholder={moneda === 'CRC' ? '20.000' : '5,00'}
             autoFocus
             required
-            className="min-h-touch border-borde bg-superficie-alta text-tinta
-                       placeholder:text-tinta-suave focus:border-crc w-full rounded-2xl border
+            className="min-h-touch border-borde-control bg-superficie-alta text-tinta
+                       placeholder:text-tinta-suave focus:border-marca focus:ring-marca w-full rounded-2xl border focus:ring-1
                        px-4 text-2xl font-semibold outline-none"
           />
         </div>
@@ -169,7 +165,9 @@ export function FormAbono({
               type="button"
               onClick={() => setMetodo(m)}
               className={`min-h-touch rounded-full border px-4 text-base font-medium ${
-                metodo === m ? 'border-crc bg-crc-tenue text-crc' : 'border-borde text-tinta-suave'
+                metodo === m
+                  ? 'border-tinta ring-tinta bg-superficie-alta text-tinta ring-1'
+                  : 'border-borde text-tinta-suave'
               }`}
             >
               {m}
@@ -189,7 +187,7 @@ export function FormAbono({
               <li key={f.mes} className="flex items-center justify-between gap-3 px-4 py-3">
                 <span className="text-tinta text-base">{nombreDeMes(f.mes)}</span>
                 <span className="flex flex-col items-end">
-                  <span className={`text-base font-semibold ${moneda === 'CRC' ? 'text-crc' : 'text-usd'}`}>
+                  <span className="text-tinta text-base font-semibold">
                     −{formatMoney(money(f.toma, moneda))}
                   </span>
                   <span className="text-tinta-suave text-sm">
@@ -213,18 +211,20 @@ export function FormAbono({
         </section>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pendiente || !monto || monto.minor <= 0}
-        className="min-h-touch bg-crc w-full rounded-2xl px-5 text-base font-semibold
-                   text-white disabled:opacity-50"
-      >
-        {pendiente
-          ? 'Registrando…'
-          : monto && monto.minor > 0
-            ? `Acreditar ${formatMoney(monto)} a ${nombre}`
-            : 'Escribí el monto'}
-      </button>
+      <AccionFija>
+        <button
+          type="submit"
+          disabled={pendiente || !monto || monto.minor <= 0}
+          className="min-h-touch bg-marca w-full rounded-2xl px-5 text-base font-semibold
+                     text-sobre-relleno disabled:opacity-50"
+        >
+          {pendiente
+            ? 'Registrando…'
+            : monto && monto.minor > 0
+              ? `Acreditar ${formatMoney(monto)} a ${nombre}`
+              : 'Escribí el monto'}
+        </button>
+      </AccionFija>
     </form>
   )
 }

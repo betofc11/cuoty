@@ -131,7 +131,7 @@ export function Fotos({
             className={`min-h-touch flex flex-1 cursor-pointer items-center justify-center gap-2
                         rounded-2xl border text-base ${
                           tipo === valor
-                            ? 'border-crc bg-crc-tenue text-crc font-semibold'
+                            ? 'border-tinta ring-tinta bg-superficie-alta text-tinta font-semibold ring-1'
                             : 'border-borde text-tinta-suave'
                         }`}
           >

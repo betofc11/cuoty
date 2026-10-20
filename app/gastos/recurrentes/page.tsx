@@ -36,7 +36,7 @@ export default async function RecurrentesPage() {
   )
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col gap-6 p-4 py-5">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-6 px-4 pt-5 pb-seguro">
       <BackLink href="/gastos">Volver</BackLink>
 
       <header className="flex flex-col gap-1">
@@ -56,8 +56,8 @@ export default async function RecurrentesPage() {
           </p>
           <Link
             href="/gastos/nuevo"
-            className="min-h-touch bg-crc flex items-center justify-center rounded-2xl px-5
-                       text-base font-semibold text-white"
+            className="min-h-touch bg-marca flex items-center justify-center rounded-2xl px-5
+                       text-base font-semibold text-sobre-relleno"
           >
             Agregar gasto
           </Link>

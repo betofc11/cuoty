@@ -39,7 +39,7 @@ export default async function BienvenidaPage() {
       <footer className="border-borde flex items-center justify-between gap-3 border-t pt-4">
         <span className="text-tinta-suave truncate text-sm">{user.email}</span>
         <form action="/auth/signout" method="post">
-          <button type="submit" className="min-h-touch text-crc px-2 text-base font-semibold">
+          <button type="submit" className="min-h-touch text-marca px-2 text-base font-semibold">
             Salir
           </button>
         </form>

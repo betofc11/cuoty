@@ -11,7 +11,7 @@ export const metadata = { title: 'Sin señal' }
  */
 export default function OfflinePage() {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col justify-center gap-6 p-4">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col justify-center gap-6 p-4">
       <Logo />
 
       <div className="flex flex-col gap-2">
@@ -31,8 +31,8 @@ export default function OfflinePage() {
           poder hacer acá, y tiene que funcionar aunque el bundle no cargue. */}
       <a
         href="/compras"
-        className="min-h-touch bg-crc flex items-center justify-center rounded-2xl px-5
-                   text-base font-semibold text-white"
+        className="min-h-touch bg-marca flex items-center justify-center rounded-2xl px-5
+                   text-base font-semibold text-sobre-relleno"
       >
         Ver la lista de compras
       </a>

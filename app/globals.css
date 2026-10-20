@@ -1,29 +1,48 @@
 @import 'tailwindcss';
 
 /* ── Tokens ────────────────────────────────────────────────────────────────
-   Sacados del prototipo. El teal de dólares no venía con hex en el
-   prototipo: lo elegí para que contraste con la terracota sin competir.
+   Nacieron del prototipo; desde el 20/10/2026 el color sigue una regla propia
+   que el prototipo no tenía:
+
+     Acción    → marca            logo, botón principal, pestaña activa, enlaces
+     Selección → tinta            la opción elegida de un grupo
+     Estado    → ok / peligro     al día, a favor, abonos, errores, anular
+     Plata     → tinta            el ₡ o el $ ya dicen la moneda
+     Moneda    → chip usd         solo en dólares, la moneda minoritaria
+
+   El texto sobre un relleno de color (marca, peligro, ok) va en
+   `sobre-relleno`, nunca en blanco fijo: en oscuro esos rellenos son claros y
+   el blanco encima no llega a 4,5:1. Todo par de texto pasa 4,5:1 en los dos
+   temas; `npm run contraste` lo verifica contra este archivo.
    -------------------------------------------------------------------- */
 
 :root {
-  --fondo: #efe9e1;
-  --superficie: #faf7f3;
-  --superficie-alta: #fffdfa;
-  --borde: #e0d7cb;
-  --borde-suave: #eee4d8;
+  /* Piedra y no crema: el crema con terracota es la paleta por defecto de
+     las interfaces generadas, y la calidez ya la ponen la marca y la tinta. */
+  --fondo: #efede9;
+  --superficie: #f8f7f4;
+  --superficie-alta: #fffefc;
+  --borde: #dfdbd4;
+  --borde-suave: #ebe8e2;
+  /* Solo campos de formulario: WCAG pide 3:1 para el borde que identifica un
+     control, y el borde de las tarjetas da 1,4:1. */
+  --borde-control: #8c8378;
 
   --tinta: #2a231d;
   --tinta-suave: #6b5f52;
 
-  /* Terracota: primario de marca Y color de colones. */
-  --crc: #b4552e;
-  --crc-tenue: #f6e7de;
+  /* Terracota: la marca y las acciones. Ya no es el color de los colones. */
+  --marca: #a14a26;
+  --marca-tenue: #f6e7de;
+  --sobre-relleno: #ffffff;
 
-  /* Teal: color de dólares. Nunca se mezcla con el de colones. */
+  /* Teal: el chip de los montos en dólares. */
   --usd: #1f6f6a;
   --usd-tenue: #dfeceb;
 
-  --peligro: #a33526;
+  /* Carmesí, otro tono que la marca: con el rojo ladrillo de antes, un
+     error y el botón principal se leían igual. */
+  --peligro: #b4233c;
   --ok: #2f6d42;
 
   /* Tonos de etiqueta. El prototipo le da color propio a cada etiqueta
@@ -32,8 +51,8 @@
      runtime a partir del id (lib/compras/tonos), así que van como
      variables y no como clases: Tailwind solo genera lo que ve escrito. */
   --etiqueta-1: #4a6631;
-  --etiqueta-2: #1f7a86;
-  --etiqueta-3: #8a6320;
+  --etiqueta-2: #186a75;
+  --etiqueta-3: #7a5618;
   --etiqueta-4: #5b4a86;
   --etiqueta-5: #8f4350;
   --etiqueta-6: #3a5a8a;
@@ -41,7 +60,7 @@
   --etiqueta-8: #2f6d5a;
 }
 
-/* El toggle manual llega en la fase 10; por ahora seguimos al sistema. */
+/* Sin clase en <html> se sigue al sistema; `.light` y `.dark` lo fuerzan. */
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
     --fondo: #1a1613;
@@ -49,20 +68,22 @@
     --superficie-alta: #2b2521;
     --borde: #3a322c;
     --borde-suave: #322b26;
+    --borde-control: #857a6e;
 
     --tinta: #f2ece4;
     --tinta-suave: #a89a8b;
 
-    --crc: #d97a4e;
-    --crc-tenue: #3a2419;
+    --marca: #d97a4e;
+    --marca-tenue: #3a2419;
+    --sobre-relleno: #1a1613;
 
     --usd: #4fa39c;
     --usd-tenue: #16302e;
 
-    --peligro: #e0705f;
+    --peligro: #f0707f;
     --ok: #6bbf85;
 
-    /* Los mismos seis tonos, aclarados: sobre superficie oscura el tono
+    /* Los mismos ocho tonos, aclarados: sobre superficie oscura el tono
        claro es el texto y la mezcla al 15% es el fondo. */
     --etiqueta-1: #9dc47c;
     --etiqueta-2: #5fbcc6;
@@ -81,17 +102,19 @@
   --superficie-alta: #2b2521;
   --borde: #3a322c;
   --borde-suave: #322b26;
+  --borde-control: #857a6e;
 
   --tinta: #f2ece4;
   --tinta-suave: #a89a8b;
 
-  --crc: #d97a4e;
-  --crc-tenue: #3a2419;
+  --marca: #d97a4e;
+  --marca-tenue: #3a2419;
+  --sobre-relleno: #1a1613;
 
   --usd: #4fa39c;
   --usd-tenue: #16302e;
 
-  --peligro: #e0705f;
+  --peligro: #f0707f;
   --ok: #6bbf85;
 
   --etiqueta-1: #9dc47c;
@@ -110,10 +133,12 @@
   --color-superficie-alta: var(--superficie-alta);
   --color-borde: var(--borde);
   --color-borde-suave: var(--borde-suave);
+  --color-borde-control: var(--borde-control);
   --color-tinta: var(--tinta);
   --color-tinta-suave: var(--tinta-suave);
-  --color-crc: var(--crc);
-  --color-crc-tenue: var(--crc-tenue);
+  --color-marca: var(--marca);
+  --color-marca-tenue: var(--marca-tenue);
+  --color-sobre-relleno: var(--sobre-relleno);
   --color-usd: var(--usd);
   --color-usd-tenue: var(--usd-tenue);
   --color-peligro: var(--peligro);
@@ -123,6 +148,30 @@
 
   /* Target táctil mínimo. Regla de UI: 48×48. */
   --spacing-touch: 3rem;
+
+  /* La columna de contenido (`max-w-app`). Antes era 390px, el ancho del
+     iPhone 12 al 14: del 15 en adelante todos miden más (393, 402, 430, 440) y
+     las barras terminaban antes del borde. 28rem cubre el más ancho, y en una
+     tablet o en la compu deja una columna centrada. Las barras van a todo el
+     ancho; solo su contenido se limita a esto. */
+  --container-app: 28rem;
+}
+
+@theme {
+  /* Las hojas inferiores suben desde el borde, como las de iOS. */
+  --animate-hoja: hoja-sube 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  @keyframes hoja-sube {
+    from {
+      transform: translateY(100%);
+    }
+  }
+}
+
+/* El último elemento de una pantalla sin tabs no puede quedar bajo el
+   indicador de inicio: son 34pt en los iPhone sin botón. */
+@utility pb-seguro {
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
 }
 
 @layer base {
@@ -140,5 +189,9 @@
     background-color: var(--fondo);
     color: var(--tinta);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+    /* La app está llena de montos: con cifras proporcionales, ₡11.111 y
+       ₡88.888 miden distinto y las columnas bailan. */
+    font-variant-numeric: tabular-nums;
   }
 }

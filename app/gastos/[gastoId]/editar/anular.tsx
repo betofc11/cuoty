@@ -40,7 +40,7 @@ export function BotonAnular({ gastoId, nombre }: { gastoId: string; nombre: stri
           type="submit"
           disabled={pendiente}
           className="min-h-touch bg-peligro w-full rounded-2xl px-5 text-base font-semibold
-                     text-white disabled:opacity-60"
+                     text-sobre-relleno disabled:opacity-60"
         >
           {pendiente ? 'Anulando…' : 'Sí, anular y revertir los cargos'}
         </button>

@@ -59,8 +59,38 @@ Romper cualquiera de estas es un bug, aunque el código compile.
   muestran su palabra al expandirse. Si vas a agregar un quinto, primero probá si
   cabe el texto.
 - Target táctil mínimo 48×48 (`min-h-touch`). Tipografía base 16px, no bajar.
+- **Contraste: todo texto pasa 4,5:1 y todo borde de campo 3:1, en los dos temas.**
+  `npm run contraste` lo verifica leyendo `app/globals.css`; si agregás un par de
+  colores nuevo a la UI, sumalo a `scripts/contraste.mjs`. Texto sobre un relleno
+  de color (`bg-marca`, `bg-peligro`, `bg-ok`) va en `text-sobre-relleno`, nunca en
+  `text-white`. `text-white` queda solo en los chips de casa, que tienen paleta fija.
+- Los campos (`input`, `select`, `textarea`) llevan `border-borde-control` y
+  `focus:ring-1 focus:ring-marca`; las tarjetas y los botones, el `border-borde` suave.
 - Toda vista necesita sus estados: cargando, vacío, error, sin señal.
   Ojo: «lista vacía» y «el filtro no encontró nada» son pantallas distintas.
+
+### El marco (fase 2 del plan de diseño)
+
+- **Las cuatro pestañas viven en `app/(tabs)/`** (`page.tsx` es `/`, más `gastos`,
+  `saldos` y `compras`), y su `layout.tsx` monta el `Shell`. Así el marco no se
+  desmonta al cambiar de pestaña: antes cada página traía su `Shell` y el
+  `loading.tsx` de la raíz lo reemplazaba entero en cada toque. Cada pestaña trae su
+  `loading.tsx` con su forma y el grupo trae su `error.tsx`, los dos dentro del marco.
+- **Las pantallas de detalle quedan fuera del grupo** (`app/gastos/nuevo`,
+  `app/saldos/[membershipId]`…): pantalla completa, con «Volver» y sin tabs.
+  Comparten carpeta de nombre con su pestaña (`app/gastos/` y `app/(tabs)/gastos/`)
+  y Next lo acepta porque ninguna ruta se repite.
+- **Ancho:** `max-w-app` (28rem, en `@theme` de `globals.css`) para el contenido.
+  Las barras van a todo el ancho y solo su contenido se limita: en un iPhone más
+  ancho que la columna, las barras cortadas dejaban franjas del fondo a los lados.
+- **Abajo:** las pantallas sin tabs terminan en `pb-seguro` (20px más el indicador
+  de inicio), y la acción final de un formulario largo va en `<AccionFija>`
+  (`components/ui/accion-fija.tsx`), anclada al pie mientras se recorre.
+- **Elegir de una lista va en una `<Hoja>`** (`components/ui/hoja.tsx`), que es un
+  `<dialog>` que sube desde abajo, al alcance del pulgar. Así son hoy el selector de
+  casa y el de mes. Nada de menús que se abren arriba.
+- **La barra de arriba es del color del fondo**, como el `theme-color`, para que no
+  haya costura con la barra de estado de iOS.
 
 ## Auth y correo
 
@@ -118,6 +148,28 @@ Dos cosas sobre cómo usarlos:
 La carpeta está fuera de `app/` y de `public/` para que Next no la sirva ni la
 empaquete: los diseños no van a producción.
 
+**Tres desvíos del prototipo, aprobados por el usuario el 20/10/2026.** Salieron
+de la revisión de diseño y acá ya no manda `Cuoty.html`:
+
+1. **La plata va en tinta.** Sin color por moneda: terracota para colones y teal
+   para dólares es del prototipo y quedó atrás. El ₡ o el $ dicen la moneda y solo
+   los dólares llevan chip (`ChipMoneda` devuelve `null` para CRC).
+2. **Fondo piedra (`#efede9`), no crema.** El crema con terracota es la paleta por
+   defecto de las interfaces generadas.
+3. **Sin mayúsculas espaciadas como títulos.** Las etiquetas tipo «MI SALDO
+   PENDIENTE» pasan a títulos de verdad (fase 3 del plan, todavía pendiente).
+
+La regla de color que salió de ahí (fase 1, ya hecha):
+
+| Uso | Token | Ejemplos |
+| --- | --- | --- |
+| Acción | `marca` | logo, botón principal, pestaña activa, enlaces |
+| Selección | `tinta` | moneda elegida, método de pago, tienda activa, casillas |
+| Estado | `ok` / `peligro` | al día, a favor, abonos, errores, anular |
+| Plata | `tinta` | todos los montos |
+
+`marca` era `crc`: se renombró porque el terracota ya no significa «colones».
+
 **Skill `design-taste-frontend`** (taste-skill, de `Leonxlnx/taste-skill`): vive en
 `.claude/skills/design-taste-frontend/`, instalada con
 `npx skills add Leonxlnx/taste-skill -a claude-code -y --copy`; `skills-lock.json` la
@@ -126,18 +178,22 @@ registra y `npx skills update` la actualiza. Sus scripts dejan trabajo en
 sin ornamentos) es una guía de gusto, **no manda**: el prototipo de `design/` y las
 convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo— le ganan.
 
-- **Su `lint.mjs --app` falla sobre Cuoty, y en buena parte es a propósito.** Marca
-  las etiquetas chicas en mayúscula espaciada y el degradado de `compras/carrusel.tsx`,
-  pero el prototipo los dibuja así (tiene 36 `text-transform:uppercase`). Tampoco
-  distingue: el `animate-pulse` de `loading.tsx` es el esqueleto de carga, y las
+- **Su `lint.mjs --app` falla sobre Cuoty, y no todo es un error.** Las etiquetas
+  chicas en mayúscula espaciada sí se van (desvío 3, arriba). El degradado de
+  `compras/carrusel.tsx` es una máscara que desvanece los chips en el borde, no un
+  relleno. El `animate-pulse` de `loading.tsx` es el esqueleto de carga, y las
   sombras de los selectores son menús flotantes, que su propia regla permite. No
-  «arreglés» sus FAIL a ciegas; contrastalos con `design/`.
+  «arreglés» sus FAIL a ciegas.
 - **En el contenedor de la nube el inspector no arranca solo.** No encuentra el
   Chromium de Playwright y, como corre de root, Chrome exige `--no-sandbox`. La
   skill no acepta flags extra, así que va un envoltorio (fuera del repo, para no
   tocar la skill y que `npx skills update` siga limpio):
   `printf '#!/bin/sh\nexec /opt/pw-browsers/chromium --no-sandbox "$@"\n' > chrome.sh`,
   `chmod +x` y `CHROME_PATH=$PWD/chrome.sh`. En una Mac encuentra Chrome sin ayuda.
+- **En la nube no hay cómo ver pantallas con sesión.** El modo automático bloquea
+  fabricar una (ponerle contraseña temporal a un usuario del seed, o mockear la
+  sesión), y después de eso desconfía también del navegador. Para revisar la UI
+  logueada, pedile al usuario capturas del iPhone, en claro y en oscuro.
 
 ## Cómo trabajar acá
 
@@ -149,8 +205,8 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
   `preview_start`, que devuelve la salida — código 0 sin texto es que pasó limpio.
   Sirve para `tsc`, para `next build` y para un `grep` puntual. **Ese archivo está
   en `.gitignore`**, así que las entradas son locales y hay que rehacerlas en cada
-  clon; conviene dejar fijas `typecheck` (con `--incremental false`, ver abajo) y
-  `build`. Lo que toque correr de verdad al usuario, pasáselo en un bloque ```bash.
+  clon; conviene dejar fijas `typecheck` (con `--incremental false`, ver abajo),
+  `build` y `contraste`. Lo que toque correr de verdad al usuario, pasáselo en un bloque ```bash.
 - **Verificá manejando la UI de verdad**, no solo con `tsc`. Los bugs que más han
   dolido acá —casas duplicadas, la tuerca que no salía, Realtime mudo, el 404 al
   borrar, el campo del código que truncaba a 6 dígitos uno de 8— no los agarra el
@@ -202,7 +258,18 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
 - **`npm run typecheck` miente con la caché.** `tsconfig.tsbuildinfo` guarda rutas
   que ya no existen y `tsc` sigue reportándolas después de agregar una página,
   aunque los archivos generados estén bien. La entrada `typecheck` de
-  `launch.json` corre con `--incremental false` justo por eso.
+  `launch.json` corre con `--incremental false` justo por eso. Pasa lo mismo al
+  **mover** una página: `.next/types/validator.ts` sigue apuntando a la ruta vieja
+  hasta el próximo `next build` o `next dev`, y `tsc` falla con «Cannot find module».
+- **Un `<dialog>` no lleva clases de display** (`flex`, `grid`, `block`): pisan el
+  `display: none` con el que el navegador lo esconde cerrado, y queda siempre a la
+  vista. El layout va en un `div` de adentro (ver `components/ui/hoja.tsx`).
+- **Lo que vive en el layout de las tabs no se desmonta al navegar**, así que su
+  estado sobrevive. El selector de casa se cierra solo porque escucha el cambio de
+  `activa.id`; si agregás otro control con estado al `Shell`, pensá cuándo se resetea.
+- **El alta de Compras sale de `PieDeSeccion`, que mira la ruta**, y no de un slot
+  paralelo (`@pie`). En una navegación del lado del cliente, un slot sin página
+  para la ruta nueva se queda mostrando la anterior: el alta aparecería en Gastos.
 - **Comentarios**: `/* ... */` dentro de un bloque `/** ... */` lo cierra antes.
 - **`close_period` hace dos cosas de más**: crea el período siguiente si no existe y
   le corre `generate_recurring_expenses`. Al cerrar meses viejos en lote, el último
@@ -235,6 +302,10 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
   (admin ve la casa, miembro solo lo suyo), así que el cambio no movió los
   alcances. Queda un borde preexistente: un saldo **a favor** cuenta como
   «miembro debe», porque solo se filtra el cero.
+- **El blanco sobre el terracota del modo oscuro daba 3,07:1.** En oscuro los
+  rellenos de color son claros (`#d97a4e`, `#f0707f`, `#6bbf85`), así que el texto
+  encima tiene que ser oscuro. Por eso existe `sobre-relleno`. Lo mismo le pasaba a
+  la tilde de «comprado»: blanco sobre el verde oscuro daba 2,2:1.
 - **Los buffers de `read_console_messages` y `preview_logs` son acumulativos.** Un
   error de un render intermedio —típico entre dos ediciones, cuando el JSX ya usa
   algo que todavía no se importó— sigue apareciendo después de arreglarlo, y
@@ -266,7 +337,6 @@ Pendiente:
   admin, y el check `periods_closed_shape` acepta volver a `open` con `closed_at`
   y `closed_by` en NULL).
 - «Leaked password protection» sigue apagada en Supabase (la app no usa contraseñas).
-- `Shell` es un componente y no `app/(app)/layout.tsx`, porque `app/page.tsx` ocupa `/`.
 
 ## Datos de prueba
 
