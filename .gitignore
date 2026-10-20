@@ -34,3 +34,6 @@ yarn-error.log*
 
 # herramientas locales de la sesión
 /.claude/launch.json
+
+# archivos de trabajo de la skill design-taste-frontend (capturas, borradores)
+/.taste-skill/
