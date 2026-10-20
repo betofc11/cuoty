@@ -126,6 +126,19 @@ registra y `npx skills update` la actualiza. Sus scripts dejan trabajo en
 sin ornamentos) es una guía de gusto, **no manda**: el prototipo de `design/` y las
 convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo— le ganan.
 
+- **Su `lint.mjs --app` falla sobre Cuoty, y en buena parte es a propósito.** Marca
+  las etiquetas chicas en mayúscula espaciada y el degradado de `compras/carrusel.tsx`,
+  pero el prototipo los dibuja así (tiene 36 `text-transform:uppercase`). Tampoco
+  distingue: el `animate-pulse` de `loading.tsx` es el esqueleto de carga, y las
+  sombras de los selectores son menús flotantes, que su propia regla permite. No
+  «arreglés» sus FAIL a ciegas; contrastalos con `design/`.
+- **En el contenedor de la nube el inspector no arranca solo.** No encuentra el
+  Chromium de Playwright y, como corre de root, Chrome exige `--no-sandbox`. La
+  skill no acepta flags extra, así que va un envoltorio (fuera del repo, para no
+  tocar la skill y que `npx skills update` siga limpio):
+  `printf '#!/bin/sh\nexec /opt/pw-browsers/chromium --no-sandbox "$@"\n' > chrome.sh`,
+  `chmod +x` y `CHROME_PATH=$PWD/chrome.sh`. En una Mac encuentra Chrome sin ayuda.
+
 ## Cómo trabajar acá
 
 - **Parás al final de cada fase.** Mostrás qué se construyó, qué decisiones tomaste
