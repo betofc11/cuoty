@@ -55,7 +55,13 @@ export async function enviarCodigo(
       options: { emailRedirectTo: `${siteUrl()}/auth/callback` },
     })
 
-    if (error) return { error: mensajeDeAuth(error.message) }
+    if (error) {
+      // El texto crudo va a la terminal: el que ve la persona está traducido y
+      // no dice qué pasó de verdad (un 401 de clave vieja se leía «No se pudo
+      // completar» y hubo que ir a los registros de Supabase a buscarlo).
+      console.error('[cuoty] auth:', error.message)
+      return { error: mensajeDeAuth(error.message) }
+    }
     return { enviadoA: correo }
   } catch {
     return { error: 'No pudimos conectarnos. Revisá tu señal e intentá de nuevo.' }
@@ -100,7 +106,13 @@ export async function verificarCodigo(
       type: 'email',
     })
 
-    if (error) return { error: mensajeDeAuth(error.message) }
+    if (error) {
+      // El texto crudo va a la terminal: el que ve la persona está traducido y
+      // no dice qué pasó de verdad (un 401 de clave vieja se leía «No se pudo
+      // completar» y hubo que ir a los registros de Supabase a buscarlo).
+      console.error('[cuoty] auth:', error.message)
+      return { error: mensajeDeAuth(error.message) }
+    }
   } catch {
     return { error: 'No pudimos conectarnos. Revisá tu señal e intentá de nuevo.' }
   }
@@ -122,6 +134,7 @@ export async function entrarConGoogle(): Promise<void> {
     if (error) throw error
     destino = data.url
   } catch (e) {
+    console.error('[cuoty] auth:', e instanceof Error ? e.message : e)
     const msg =
       e instanceof Error ? mensajeDeAuth(e.message) : 'No se pudo conectar con Google.'
     redirect(`/login?error=${encodeURIComponent(msg)}`)

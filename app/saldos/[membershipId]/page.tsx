@@ -56,9 +56,7 @@ export default async function SaldoDeMiembroPage({
 
       {detalle.porMes.length > 0 ? (
         <section className="flex flex-col gap-2">
-          <h2 className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
-            Desglose por mes
-          </h2>
+          <h2 className="text-tinta text-base font-semibold">Desglose por mes</h2>
           <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">
             {detalle.porMes.map((m) => (
               <li key={m.periodoId} className="flex items-center justify-between gap-3 p-4">
@@ -72,17 +70,12 @@ export default async function SaldoDeMiembroPage({
               </li>
             ))}
           </ul>
-          <p className="text-tinta-suave text-sm">
-            Los abonos se registran sobre el saldo total, no sobre un mes. Se aplican del
-            mes más viejo al más nuevo.
-          </p>
+          <p className="text-tinta-suave text-sm">Cada abono baja primero el mes más viejo.</p>
         </section>
       ) : null}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
-          Movimientos
-        </h2>
+        <h2 className="text-tinta text-base font-semibold">Movimientos</h2>
 
         {detalle.movimientos.length === 0 ? (
           <p className="border-borde-suave text-tinta-suave rounded-2xl border border-dashed p-5 text-base">
@@ -99,23 +92,20 @@ export default async function SaldoDeMiembroPage({
                     {mov.detalle ? ` · ${mov.detalle}` : ''}
                   </span>
                 </span>
+                {/* Sin signo: el título ya dice qué es («Abono», el nombre del gasto)
+                    y el verde marca lo que baja el saldo. El «+» necesitaba una nota
+                    al pie para entenderse. */}
                 <span
                   className={`shrink-0 text-base font-semibold ${
                     mov.reduce ? 'text-ok' : 'text-tinta'
                   }`}
                 >
-                  {mov.reduce ? '+' : ''}
                   {formatMoney(mov.monto)}
                 </span>
               </li>
             ))}
           </ul>
         )}
-
-        <p className="text-tinta-suave text-sm">
-          El «+» marca lo que se te acreditó. Los cargos suman al saldo; los abonos lo
-          bajan.
-        </p>
       </section>
 
       {/* Invariante 3: el miembro no tiene ninguna acción de pago. */}

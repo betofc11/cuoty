@@ -50,7 +50,7 @@ export default async function CerrarMesPage({
 
       {vista.remanentes.length > 0 ? (
         <section className="flex flex-col gap-2">
-          <h2 className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+          <h2 className="text-tinta text-base font-semibold">
             Qué se arrastra
           </h2>
           <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">
@@ -75,7 +75,7 @@ export default async function CerrarMesPage({
       ) : null}
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+        <h2 className="text-tinta text-base font-semibold">
           Resumen de {corto}
         </h2>
         <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">

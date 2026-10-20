@@ -3,11 +3,13 @@ import { Barra, Esqueleto, FilasEnTarjeta } from '@/components/ui/esqueleto'
 export default function CargandoGastos() {
   return (
     <Esqueleto>
-      <Barra className="h-12 w-48 rounded-full" />
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-tinta text-xl font-semibold">Gastos</h1>
+        <Barra className="h-12 w-40 rounded-full" />
+      </div>
       <div className="flex flex-col gap-2">
-        <Barra className="h-4 w-32" />
+        <h2 className="text-tinta text-base font-semibold">Mi cargo del mes</h2>
         <Barra className="h-9 w-40" />
-        <Barra className="h-4 w-4/5" />
       </div>
       <div className="flex flex-col gap-2">
         <Barra className="h-5 w-28" />

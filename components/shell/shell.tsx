@@ -1,8 +1,8 @@
 import { perfilActual } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
 
+import { ID_ACCION_DE_PIE } from './accion-de-pie'
 import { Navbar } from './navbar'
-import { PieDeSeccion } from './pie'
 import { Tabs } from './tabs'
 
 /**
@@ -29,10 +29,11 @@ export async function Shell({ children }: { children: React.ReactNode }) {
 
       <main className="max-w-app mx-auto w-full flex-1 px-4 py-5">{children}</main>
 
-      {/* El pie y las tabs comparten el sticky: si cada uno lleva el suyo,
-          el de abajo tapa al de arriba en vez de apilarse. */}
+      {/* La acción de la página y las tabs comparten el sticky: si cada una
+          lleva el suyo, la de abajo tapa a la de arriba en vez de apilarse. El
+          `div` vacío lo llena `<AccionDePie>` desde la página que tenga una. */}
       <div className="border-borde bg-superficie-alta sticky bottom-0 z-10 border-t pb-[env(safe-area-inset-bottom)]">
-        <PieDeSeccion />
+        <div id={ID_ACCION_DE_PIE} />
         <Tabs />
       </div>
     </div>

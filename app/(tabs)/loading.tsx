@@ -8,13 +8,14 @@ export default function CargandoInicio() {
   return (
     <Esqueleto>
       <div className="border-borde bg-superficie flex flex-col gap-3 rounded-2xl border p-5">
-        <Barra className="h-4 w-36" />
+        {/* Los títulos no dependen de datos: salen escritos desde el primer cuadro. */}
+        <h1 className="text-tinta text-xl font-semibold">Mi saldo</h1>
         <Barra className="h-9 w-44" />
         <Barra className="h-4 w-3/4" />
         <Barra className="h-5 w-40" />
       </div>
       <div className="flex flex-col gap-2">
-        <Barra className="h-4 w-20" />
+        <Barra className="h-5 w-20" />
         <FilasEnTarjeta filas={2} />
       </div>
     </Esqueleto>

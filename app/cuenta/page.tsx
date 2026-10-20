@@ -26,7 +26,7 @@ export default async function CuentaPage() {
       <section className="flex flex-col gap-3">
         {/* «Perfil» y no «Tu nombre»: el campo de abajo ya se llama así y la
             palabra repetida dos veces seguidas se lee como un error. */}
-        <h2 className="text-tinta-suave text-sm font-semibold tracking-wide uppercase">
+        <h2 className="text-tinta text-base font-semibold">
           Perfil
         </h2>
         <FormNombre
@@ -37,7 +37,7 @@ export default async function CuentaPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-tinta-suave text-sm font-semibold tracking-wide uppercase">
+        <h2 className="text-tinta text-base font-semibold">
           {casas.length === 1 ? 'Mi casa' : 'Mis casas'}
         </h2>
         <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">

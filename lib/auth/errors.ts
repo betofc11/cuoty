@@ -37,6 +37,12 @@ export function mensajeDeAuth(bruto: string): string {
   if (m.includes('fetch') || m.includes('network')) {
     return 'No pudimos conectarnos. Revisá tu señal e intentá de nuevo.'
   }
+  // Supabase rechazó la clave pública: es configuración (una clave vieja en
+  // `.env.local`, o una variable que falta en el entorno de Vercel), no algo que
+  // la persona pueda arreglar intentando de nuevo.
+  if (m.includes('invalid api key') || m.includes('no api key')) {
+    return 'La app no pudo hablar con su servidor. Avisale a quien la administra.'
+  }
 
   return 'No se pudo completar. Intentá de nuevo.'
 }

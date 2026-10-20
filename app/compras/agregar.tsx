@@ -29,7 +29,7 @@ export function AgregarItem() {
   )
 
   return (
-    // Sin fondo ni borde propios: los pone `PieDeSeccion`, a todo el ancho.
+    // Sin fondo ni borde propios: los pone `AccionDePie`, a todo el ancho.
     <div className="flex flex-col gap-2 px-4 py-3">
       {estado.error ? <Alert tono="error">{estado.error}</Alert> : null}
 

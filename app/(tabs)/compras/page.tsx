@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { AccionDePie } from '@/components/shell/accion-de-pie'
 import { Button } from '@/components/ui/button'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { contextoDeCasa } from '@/lib/casas/activa'
@@ -13,6 +14,7 @@ import {
 import { tonoDeEtiqueta } from '@/lib/compras/tonos'
 
 import { archivarComprados } from '@/app/compras/acciones'
+import { AgregarItem } from '@/app/compras/agregar'
 import { Buscador } from '@/app/compras/buscador'
 import { Carrusel } from '@/app/compras/carrusel'
 import { FilaComprada, FilaItem } from '@/app/compras/fila-item'
@@ -102,7 +104,7 @@ function Escoba() {
   )
 }
 
-const ROTULO = 'text-tinta-suave text-xs font-semibold tracking-wide uppercase'
+const ROTULO = 'text-tinta-suave text-sm font-medium'
 
 const BOTON_SECUNDARIO =
   'min-h-touch border-borde bg-superficie-alta text-tinta flex flex-1 items-center ' +
@@ -206,6 +208,11 @@ export default async function ComprasPage({
   return (
     <>
       <RealtimeCompras casaId={activa.id} />
+      {/* El alta va sobre las tabs, al alcance del pulgar: es lo que más se
+          repite y se hace con una mano en el súper. */}
+      <AccionDePie>
+        <AgregarItem />
+      </AccionDePie>
 
       <div className="flex flex-col gap-4">
         <OfflineBanner />
@@ -429,7 +436,7 @@ export default async function ComprasPage({
         {vista.totalComprados > 0 ? (
           <form action={archivarComprados}>
             <Button type="submit" variante="secundario">
-              Limpiar comprados ({vista.totalComprados})
+              Quitar los comprados ({vista.totalComprados})
             </Button>
           </form>
         ) : null}

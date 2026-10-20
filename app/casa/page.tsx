@@ -49,7 +49,7 @@ export default async function CasaPage() {
       </header>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-tinta-suave text-sm font-semibold tracking-wide uppercase">
+        <h2 className="text-tinta text-base font-semibold">
           Código para entrar
         </h2>
         {casa ? (
@@ -70,7 +70,7 @@ export default async function CasaPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-tinta-suave text-sm font-semibold tracking-wide uppercase">
+        <h2 className="text-tinta text-base font-semibold">
           Quiénes están
         </h2>
         <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">

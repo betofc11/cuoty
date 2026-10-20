@@ -114,7 +114,7 @@ export function FormAbono({
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="monto" className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+        <label htmlFor="monto" className="text-tinta text-base font-medium">
           Monto del abono
         </label>
         <div className="flex items-center gap-2">
@@ -127,11 +127,11 @@ export function FormAbono({
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             inputMode="decimal"
-            placeholder={moneda === 'CRC' ? '20.000' : '5,00'}
+            placeholder="0"
             autoFocus
             required
             className="min-h-touch border-borde-control bg-superficie-alta text-tinta
-                       placeholder:text-tinta-suave focus:border-marca focus:ring-marca w-full rounded-2xl border focus:ring-1
+                       placeholder:text-tinta-suave placeholder:font-normal focus:border-marca focus:ring-marca w-full rounded-2xl border focus:ring-1
                        px-4 text-2xl font-semibold outline-none"
           />
         </div>
@@ -155,7 +155,7 @@ export function FormAbono({
       </div>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+        <legend className="text-tinta text-base font-medium">
           Cómo lo recibiste
         </legend>
         <div className="flex flex-wrap gap-2">
@@ -179,7 +179,7 @@ export function FormAbono({
       {/* Invariante 8: el reparto es visible antes de confirmar. */}
       {monto && monto.minor > 0 ? (
         <section className="border-borde bg-superficie rounded-2xl border">
-          <h2 className="text-tinta-suave border-borde-suave border-b px-4 py-3 text-xs font-semibold tracking-wide uppercase">
+          <h2 className="text-tinta border-borde-suave border-b px-4 py-3 text-base font-semibold">
             Se aplica así, del mes más viejo al más nuevo
           </h2>
           <ul className="divide-borde-suave divide-y">

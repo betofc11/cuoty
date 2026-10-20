@@ -24,11 +24,9 @@ export default async function InicioPage() {
       <OfflineBanner />
 
       <section className="border-borde bg-superficie flex flex-col gap-3 rounded-2xl border p-5">
-        <h1 className="text-tinta-suave text-sm font-semibold tracking-wide uppercase">
-          {mio && (isZero(mio.saldo.CRC) && isZero(mio.saldo.USD))
-            ? 'Al día'
-            : 'Mi saldo pendiente'}
-        </h1>
+        {/* El estado («Pendiente», «A favor», «Al día») lo dice `SaldoPar` junto
+            al monto: el título solo nombra la pantalla. */}
+        <h1 className="text-tinta text-xl font-semibold">Mi saldo</h1>
 
         {mio ? (
           <>
@@ -68,9 +66,7 @@ export default async function InicioPage() {
       {/* Solo el admin ve lo que deben los demás. */}
       {esAdmin ? (
         <section className="flex flex-col gap-2">
-          <h2 className="text-tinta-suave text-sm font-semibold tracking-wide uppercase">
-            La casa
-          </h2>
+          <h2 className="text-tinta text-base font-semibold">La casa</h2>
 
           {otros.length === 0 ? (
             <p className="border-borde-suave text-tinta-suave rounded-2xl border border-dashed p-5 text-base">
