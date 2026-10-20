@@ -150,6 +150,17 @@ function pares(t) {
     lista.push([`superficie-alta / etiqueta-${n}`, c('superficie-alta'), tono, TEXTO])
   }
 
+  // Avatares: la inicial en la tinta de la persona sobre su fondo pálido.
+  // Ver components/ui/avatar.tsx.
+  for (let n = 1; n <= 6; n++) {
+    lista.push([
+      `persona-${n}-tinta / persona-${n}-fondo`,
+      c(`persona-${n}-tinta`),
+      c(`persona-${n}-fondo`),
+      TEXTO,
+    ])
+  }
+
   return lista
 }
 

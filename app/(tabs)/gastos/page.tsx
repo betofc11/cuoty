@@ -2,6 +2,7 @@ import Link from 'next/link'
 
 import { ParDeMontos } from '@/components/dinero/par'
 import { ChipMoneda, Monto } from '@/components/dinero/monto'
+import { BarraDeReparto } from '@/components/gastos/reparto'
 import { SelectorMes } from '@/components/gastos/selector-mes'
 import { AccionDePie } from '@/components/shell/accion-de-pie'
 import { OfflineBanner } from '@/components/ui/offline-banner'
@@ -149,6 +150,9 @@ export default async function GastosPage({
               </Link>
             ) : null}
           </header>
+
+          {/* Vacío en un mes cerrado: ver `ListaVista.reparto`. */}
+          <BarraDeReparto partes={lista.reparto} />
 
           <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">
             {lista.gastos.map((g) => (

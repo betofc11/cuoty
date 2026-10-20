@@ -1,8 +1,10 @@
 import { BackLink } from '@/components/ui/back-link'
 import { Alert } from '@/components/ui/alert'
+import { Avatar } from '@/components/ui/avatar'
 import { requireUser } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
 import { colorDeCasa, inicialDeCasa } from '@/lib/casas/color'
+import { inicialDe, personasDeLaCasa, tonoDe } from '@/lib/casas/personas'
 
 import { CopiarCodigo } from './copiar-codigo'
 
@@ -26,6 +28,7 @@ export default async function CasaPage() {
     .in('id', (membresias ?? []).map((m) => m.user_id))
 
   const nombrePorId = new Map((perfiles ?? []).map((p) => [p.id, p.display_name]))
+  const personas = await personasDeLaCasa()
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-6 px-4 pt-5 pb-seguro">
@@ -80,7 +83,8 @@ export default async function CasaPage() {
 
             return (
               <li key={m.id} className="flex items-center justify-between gap-3 p-4">
-                <span className="flex min-w-0 flex-col">
+                <Avatar inicial={inicialDe(nombre)} tono={tonoDe(personas, m.id)} />
+                <span className="flex min-w-0 flex-1 flex-col">
                   <span className="text-tinta truncate text-base font-medium">
                     {nombre}
                     {soyYo ? ' (vos)' : ''}

@@ -1,5 +1,6 @@
 import { requireUser } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
+import { personasDeLaCasa, type ParteDelReparto } from '@/lib/casas/personas'
 import {
   addToPair as sumarEnPar,
   fromDecimal,
@@ -34,6 +35,11 @@ export type ListaVista = {
   nombre: string
   gastos: GastoVista[]
   miSubtotal: MoneyPair
+  /**
+   * Los porcentajes vigentes de la lista (`list_shares`), en el orden de la casa.
+   * Vacío en un mes cerrado: los de ahora pueden no ser los que se aplicaron.
+   */
+  reparto: ParteDelReparto[]
 }
 
 export type ArrastreVista = {
@@ -159,11 +165,43 @@ export async function vistaDeGastos(mesPedido?: string): Promise<VistaDeGastos> 
     miCargo = sumarEnPar(miCargo, cargo, moneda)
   }
 
+  // El reparto vigente, solo en un mes abierto. RLS deja leer `list_shares` a
+  // cualquier miembro de la casa: el porcentaje de cada quien no es secreto.
+  const repartoPorLista = new Map<string, ParteDelReparto[]>()
+
+  if (periodo.estado === 'open' && (filasListas ?? []).length > 0) {
+    const [{ data: filasRepartos }, personas] = await Promise.all([
+      supabase
+        .from('list_shares')
+        .select('list_id, membership_id, percent')
+        .in('list_id', (filasListas ?? []).map((l) => l.id)),
+      personasDeLaCasa(),
+    ])
+
+    const porcentaje = new Map(
+      (filasRepartos ?? []).map((r) => [`${r.list_id}:${r.membership_id}`, Number(r.percent)]),
+    )
+
+    for (const l of filasListas ?? []) {
+      // Recorre las personas en el orden de la casa y no el de `list_shares`:
+      // así la leyenda de todas las listas sale en el mismo orden.
+      const partes: ParteDelReparto[] = []
+      for (const [membershipId, persona] of personas) {
+        const percent = porcentaje.get(`${l.id}:${membershipId}`) ?? 0
+        if (percent > 0) {
+          partes.push({ membershipId, nombre: persona.nombre, tono: persona.tono, percent })
+        }
+      }
+      repartoPorLista.set(l.id, partes)
+    }
+  }
+
   const listas: ListaVista[] = (filasListas ?? []).map((l) => ({
     id: l.id,
     nombre: l.name,
     gastos: gastosPorLista.get(l.id) ?? [],
     miSubtotal: subtotalPorLista.get(l.id) ?? zeroPair(),
+    reparto: repartoPorLista.get(l.id) ?? [],
   }))
 
   // ── Arrastre: lo que sigue vivo de meses ya cerrados ──

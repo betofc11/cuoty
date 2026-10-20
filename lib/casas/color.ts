@@ -9,11 +9,21 @@
  * Ojo: el color NUNCA es la única señal. El nombre y el rol van escritos al
  * lado — la variación "solo la inicial" se descartó justamente por eso.
  */
+/*
+ * Saturados y con la inicial en blanco (todos pasan 4,5:1). Las personas van al
+ * revés, pálidas y con letra oscura (components/ui/avatar.tsx): así un chip de
+ * casa no se confunde con un avatar.
+ *
+ * El 0 era terracota y el 3 ladrillo: casi el mismo color entre sí, y el
+ * terracota es el de la marca, que es para las acciones. Desde el 20/10/2026
+ * son azul pizarra y ciruela. Se cambiaron en su lugar, sin mover los demás,
+ * para que solo cambien de color las casas que caían en esos dos.
+ */
 const PALETA = [
-  '#b4552e', // terracota
+  '#305e8b', // azul pizarra (era terracota)
   '#1f6f6a', // teal
   '#7a5ea7', // uva
-  '#a8452f', // ladrillo
+  '#7c3a68', // ciruela (era ladrillo)
   '#3f6f3a', // olivo
   '#9c6b1f', // mostaza tostada
 ] as const

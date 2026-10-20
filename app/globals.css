@@ -58,6 +58,26 @@
   --etiqueta-6: #3a5a8a;
   --etiqueta-7: #7a3f6d;
   --etiqueta-8: #2f6d5a;
+
+  /* Un tono por persona de la casa: la inicial en la tinta, sobre el fondo
+     pálido del mismo tono (ver lib/casas/personas.ts y components/ui/avatar).
+     Son identidad, no datos: van pálidos. Seis tonos separados en el círculo y
+     lejos del terracota de la marca y del carmesí de peligro. Calculados en
+     OKLCH: fondo L .915 C .045, tinta L .43 C .09; oscuro, fondo L .37 C .05
+     y tinta L .89 C .06. Las casas, en cambio, van saturadas con letra
+     blanca (lib/casas/color.ts): así no se confunde un chip con un avatar. */
+  --persona-1-fondo: #f3e0c2;
+  --persona-1-tinta: #694900;
+  --persona-2-fondo: #d4ebcf;
+  --persona-2-tinta: #335c2a;
+  --persona-3-fondo: #c1edef;
+  --persona-3-tinta: #005e63;
+  --persona-4-fondo: #cfe5ff;
+  --persona-4-tinta: #2b5180;
+  --persona-5-fondo: #eadcfc;
+  --persona-5-tinta: #5b4277;
+  --persona-6-fondo: #fdd7e4;
+  --persona-6-tinta: #753952;
 }
 
 /* Sin clase en <html> se sigue al sistema; `.light` y `.dark` lo fuerzan. */
@@ -93,6 +113,19 @@
     --etiqueta-6: #93b2df;
     --etiqueta-7: #cf9dc4;
     --etiqueta-8: #71c2a9;
+
+    --persona-1-fondo: #4e3d1f;
+    --persona-1-tinta: #f0d7ae;
+    --persona-2-fondo: #31462d;
+    --persona-2-tinta: #c6e5c0;
+    --persona-3-fondo: #19484a;
+    --persona-3-tinta: #ace7ea;
+    --persona-4-fondo: #2d415a;
+    --persona-4-tinta: #c1ddff;
+    --persona-5-fondo: #463955;
+    --persona-5-tinta: #e4d1fb;
+    --persona-6-fondo: #553441;
+    --persona-6-tinta: #fccbdd;
   }
 }
 
@@ -125,6 +158,19 @@
   --etiqueta-6: #93b2df;
   --etiqueta-7: #cf9dc4;
   --etiqueta-8: #71c2a9;
+
+  --persona-1-fondo: #4e3d1f;
+  --persona-1-tinta: #f0d7ae;
+  --persona-2-fondo: #31462d;
+  --persona-2-tinta: #c6e5c0;
+  --persona-3-fondo: #19484a;
+  --persona-3-tinta: #ace7ea;
+  --persona-4-fondo: #2d415a;
+  --persona-4-tinta: #c1ddff;
+  --persona-5-fondo: #463955;
+  --persona-5-tinta: #e4d1fb;
+  --persona-6-fondo: #553441;
+  --persona-6-tinta: #fccbdd;
 }
 
 @theme inline {

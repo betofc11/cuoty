@@ -2,7 +2,9 @@
 
 import { useActionState, useMemo, useState } from 'react'
 
+import { BarraDeReparto } from '@/components/gastos/reparto'
 import { Alert } from '@/components/ui/alert'
+import { Avatar } from '@/components/ui/avatar'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { nombreDeMes } from '@/lib/fechas'
 import type { VistaPorcentajes } from '@/lib/gastos/porcentajes'
@@ -231,6 +233,19 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
               ? `Faltan ${fmtPct(restante)}% por repartir. La suma tiene que dar exactamente 100%.`
               : `Te pasaste por ${fmtPct(-restante)}%. La suma tiene que dar exactamente 100%.`}
         </p>
+        {/* En vivo: se mueve con los ± y con lo que se escribe. Si la suma se
+            pasa de 100, la barra muestra la proporción y el texto de arriba
+            dice por cuánto. */}
+        <div className="pt-3">
+          <BarraDeReparto
+            partes={vista.miembros.map((m) => ({
+              membershipId: m.membershipId,
+              nombre: m.nombre,
+              tono: m.tono,
+              percent: (bps[m.membershipId] ?? 0) / 100,
+            }))}
+          />
+        </div>
       </div>
 
       <section className="flex flex-col gap-2">
@@ -267,8 +282,11 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
 
           return (
             <li key={m.membershipId} className="flex items-center gap-3 p-4">
+              <Avatar inicial={m.inicial} tono={m.tono} />
+              {/* Sin `truncate`: con los ± al lado queda poco ancho, y un nombre
+                  largo pasa a dos líneas antes que perder el apellido. */}
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-tinta truncate text-base font-medium">{m.nombre}</span>
+                <span className="text-tinta text-base font-medium break-words">{m.nombre}</span>
                 {hayPlata ? (
                   <span className="text-tinta-suave text-sm">
                     {!isZero(vista.totalAbierto.CRC)
