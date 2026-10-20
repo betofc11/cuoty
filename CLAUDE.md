@@ -185,6 +185,32 @@ La regla de color que salió de ahí (fase 1, ya hecha):
 
 `marca` era `crc`: se renombró porque el terracota ya no significa «colones».
 
+**Identidad (fase 4, la última del plan de diseño):**
+
+- **Cada persona tiene un tono en su casa**: `--persona-N-fondo` y `--persona-N-tinta`,
+  N de 1 a 6, pálidos y con su tinta oscura, lejos del terracota y del carmesí. Lo
+  reparte `personasDeLaCasa()` (`lib/casas/personas.ts`) por posición de ingreso,
+  **contando también a quienes ya se fueron**: si no, la salida de alguien le
+  cambiaría el color a todos los que entraron después. Ese archivo es solo de
+  servidor (lee la sesión): a un componente cliente le llegan la inicial y el tono
+  ya calculados, como al editor de porcentajes.
+- **`<Avatar>`** (`components/ui/avatar.tsx`): la inicial en su tono, siempre con el
+  nombre escrito al lado. Está en la barra de arriba (mi tono en la casa activa),
+  «La casa» del inicio, Saldos, el detalle de saldo, `/casa` y los repartos. En
+  Compras no, a propósito: la fila ya está llena.
+- **Casa saturada, persona pálida.** Las casas (`lib/casas/color.ts`) van en color
+  fuerte con letra blanca; las personas, pálidas con letra oscura. Así un chip de
+  casa no se confunde con un avatar. El terracota y el ladrillo de la paleta de
+  casas pasaron a azul pizarra y ciruela (el terracota es de la marca).
+- **`<BarraDeReparto>`** (`components/gastos/reparto.tsx`): un segmento por persona
+  en su tono, con la leyenda en texto. Está en cada lista de Gastos (los porcentajes
+  vigentes, solo con el mes abierto), en el detalle del gasto (el
+  `percent_applied` real) y en vivo en el editor de porcentajes.
+- **Ícono:** la misma «c», recoloreada a `#a14a26` con letra `#fffefc`, mezclando
+  cada píxel en la misma proporción para no perder el antialias. iOS guarda el
+  `apple-touch-icon` en caché: para ver uno nuevo hay que sacar la app de la pantalla
+  de inicio y volver a agregarla.
+
 **Skill `design-taste-frontend`** (taste-skill, de `Leonxlnx/taste-skill`): vive en
 `.claude/skills/design-taste-frontend/`, instalada con
 `npx skills add Leonxlnx/taste-skill -a claude-code -y --copy`; `skills-lock.json` la
@@ -312,16 +338,25 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
   tiene gasto en ese período— pero si una plantilla todavía no se generó ahí, se
   genera sola. Revisá `recurring_templates` antes de cerrar nada en lote.
 - **Impersonar en SQL de verdad** (lo que el MCP corre como `postgres` bypassea RLS):
-  poné los dos `set_config` en el `FROM` y la consulta real en un `LATERAL`, que se
-  evalúa después — en la lista de columnas del `SELECT` el orden no está garantizado.
+  los dos `set_config` van en **sentencias separadas, antes de la consulta**, en la
+  misma llamada a `execute_sql` (corren en una sola transacción, así que el `true`
+  de «local» los mantiene). Mirá `current_user` en el resultado: tiene que decir
+  `authenticated`.
 
   ```sql
-  select v.* from (
-    select set_config('request.jwt.claims',
-             json_build_object('sub','<user_id>','role','authenticated')::text, true),
-           set_config('role','authenticated', true)
-  ) s, lateral ( /* la consulta */ ) v;
+  select set_config('request.jwt.claims',
+           json_build_object('sub','<user_id>','role','authenticated')::text, true);
+  select set_config('role','authenticated', true);
+  select current_user, /* la consulta */ ...;
   ```
+
+  **Ojo, esto corrige una receta vieja de acá.** Con los `set_config` en el `FROM` y
+  la consulta en un `LATERAL`, todo en la misma sentencia, el RLS de las tablas NO
+  se aplica: la consulta se planifica todavía como `postgres`. Solo andaban las
+  funciones que leen el claim al ejecutarse (`app.is_house_admin`, `close_period`).
+  Con esa receta, Rodrigo «veía» las membresías de Apto Escalante, que no es su casa.
+  Fue un falso positivo de la prueba, no una fuga real: una prueba de RLS hecha así
+  no prueba nada.
 
   Sin el claim, `app.is_house_admin` da false y `close_period` levanta 42501. Para la
   autoría alcanza `cuoty.actor_id`, que `current_actor()` mira antes que `auth.uid()`.
@@ -354,6 +389,10 @@ perfil editable en `/cuenta` y obligatorio en `/bienvenida`, onboarding, gastos 
 listas y porcentajes, recurrentes, saldos y abonos, cierre de mes con arrastres,
 lista de compras completa (tiendas, etiquetas, filtros, búsqueda, comprados,
 Realtime, fotos en Storage), PWA instalable con tema claro/oscuro y service worker.
+
+El plan de la revisión de diseño (octubre de 2026) está completo en sus cuatro
+fases: contraste y color, el marco en el iPhone, jerarquía y textos, e identidad.
+Lo que salió de ahí está en «Diseños» y en «El marco».
 
 Pendiente:
 - **Foto de perfil.** `profiles.avatar_url` existe y Google la llena, pero el shell

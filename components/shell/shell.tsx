@@ -1,5 +1,6 @@
 import { perfilActual } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
+import { inicialDe, personasDeLaCasa, tonoDe } from '@/lib/casas/personas'
 
 import { ID_ACCION_DE_PIE } from './accion-de-pie'
 import { Navbar } from './navbar'
@@ -18,14 +19,19 @@ import { Tabs } from './tabs'
 export async function Shell({ children }: { children: React.ReactNode }) {
   const { nombre } = await perfilActual()
   const { activa, casas } = await contextoDeCasa()
+  const personas = await personasDeLaCasa()
 
-  // `contextoDeCasa` ya exigió el nombre, así que acá siempre hay algo. El `?`
-  // es por si el perfil trae un nombre que empieza con algo raro.
-  const inicial = nombre.charAt(0).toUpperCase()
-
+  // La inicial sale del perfil y no del mapa de la casa: es la misma persona,
+  // pero el perfil ya está en caché y siempre trae el nombre recién editado.
+  // El tono sí es de la casa: en cada casa podés tener otro.
   return (
     <div className="flex min-h-dvh flex-col">
-      <Navbar activa={activa} casas={casas} inicial={inicial || '?'} />
+      <Navbar
+        activa={activa}
+        casas={casas}
+        inicial={inicialDe(nombre)}
+        tono={tonoDe(personas, activa.membershipId)}
+      />
 
       <main className="max-w-app mx-auto w-full flex-1 px-4 py-5">{children}</main>
 

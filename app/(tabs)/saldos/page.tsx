@@ -1,9 +1,11 @@
 import Link from 'next/link'
 
 import { SaldoPar } from '@/components/dinero/saldo'
+import { Avatar } from '@/components/ui/avatar'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { requireUser } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
+import { inicialDe, personasDeLaCasa, tonoDe } from '@/lib/casas/personas'
 import { formatMoney, isZero } from '@/lib/money'
 import { saldosDeLaCasa } from '@/lib/saldos/consultas'
 
@@ -34,7 +36,7 @@ async function nombreDelAdmin(): Promise<string> {
 
 export default async function SaldosPage() {
   const { activa } = await contextoDeCasa()
-  const saldos = await saldosDeLaCasa()
+  const [saldos, personas] = await Promise.all([saldosDeLaCasa(), personasDeLaCasa()])
   const esAdmin = activa.rol === 'admin'
   const admin = esAdmin ? null : await nombreDelAdmin()
 
@@ -68,6 +70,13 @@ export default async function SaldosPage() {
                 href={`/saldos/${s.membershipId}`}
                 className="active:bg-superficie-alta flex min-w-0 flex-1 items-center gap-3 p-4"
               >
+                <span className="self-start">
+                  <Avatar
+                    inicial={inicialDe(s.nombre)}
+                    tono={tonoDe(personas, s.membershipId)}
+                    tamano="grande"
+                  />
+                </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   {/* Sin `truncate`: un nombre largo pasa a dos líneas antes que
                       perder el apellido. */}

@@ -1,14 +1,16 @@
 import Link from 'next/link'
 
 import { SaldoPar } from '@/components/dinero/saldo'
+import { Avatar } from '@/components/ui/avatar'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { contextoDeCasa } from '@/lib/casas/activa'
+import { inicialDe, personasDeLaCasa, tonoDe } from '@/lib/casas/personas'
 import { formatMoney, isZero } from '@/lib/money'
 import { saldosDeLaCasa } from '@/lib/saldos/consultas'
 
 export default async function InicioPage() {
   const { activa } = await contextoDeCasa()
-  const saldos = await saldosDeLaCasa()
+  const [saldos, personas] = await Promise.all([saldosDeLaCasa(), personasDeLaCasa()])
 
   const esAdmin = activa.rol === 'admin'
   const mio = saldos.find((s) => s.esYo)
@@ -80,7 +82,10 @@ export default async function InicioPage() {
                     href={`/saldos/${s.membershipId}`}
                     className="active:bg-superficie-alta flex items-center justify-between gap-3 p-4"
                   >
-                    <span className="text-tinta text-base">{s.nombre}</span>
+                    <span className="flex min-w-0 items-center gap-3">
+                      <Avatar inicial={inicialDe(s.nombre)} tono={tonoDe(personas, s.membershipId)} />
+                      <span className="text-tinta text-base">{s.nombre}</span>
+                    </span>
                     <SaldoPar par={s.saldo} tamano="normal" />
                   </Link>
                 </li>

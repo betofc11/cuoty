@@ -2,10 +2,18 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { ChipMoneda, Monto } from '@/components/dinero/monto'
+import { BarraDeReparto } from '@/components/gastos/reparto'
 import { Alert } from '@/components/ui/alert'
+import { Avatar } from '@/components/ui/avatar'
 import { BackLink } from '@/components/ui/back-link'
 import { requireUser } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
+import {
+  inicialDe,
+  personasDeLaCasa,
+  tonoDe,
+  type ParteDelReparto,
+} from '@/lib/casas/personas'
 import { diaYMes } from '@/lib/fechas'
 import { fromDecimal } from '@/lib/money'
 
@@ -57,6 +65,16 @@ export default async function GastoPage({
   }
 
   const mio = porMiembro.get(activa.membershipId)
+
+  // La barra usa el porcentaje que se aplicó de verdad en cada asiento, no el
+  // vigente de la lista: si después se cambiaron los porcentajes, este gasto
+  // sigue repartido como se repartió.
+  const personas = await personasDeLaCasa()
+  const reparto: ParteDelReparto[] = []
+  for (const [membershipId, persona] of personas) {
+    const percent = porMiembro.get(membershipId)?.percent
+    if (percent) reparto.push({ membershipId, nombre: persona.nombre, tono: persona.tono, percent })
+  }
   const esAdmin = activa.rol === 'admin'
   const anulado = gasto.voided_at !== null
 
@@ -112,6 +130,7 @@ export default async function GastoPage({
         <h2 className="text-tinta text-base font-semibold">
           Cómo se reparte
         </h2>
+        <BarraDeReparto partes={reparto} />
         <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">
           {(membresias ?? []).map((m) => {
             const dato = porMiembro.get(m.id)
@@ -121,9 +140,12 @@ export default async function GastoPage({
 
             return (
               <li key={m.id} className="flex items-center justify-between gap-3 p-4">
-                <span className="text-tinta text-base">
-                  {nombre}
-                  {m.id === activa.membershipId ? ' (vos)' : ''}
+                <span className="flex min-w-0 items-center gap-3">
+                  <Avatar inicial={inicialDe(nombre)} tono={tonoDe(personas, m.id)} />
+                  <span className="text-tinta text-base">
+                    {nombre}
+                    {m.id === activa.membershipId ? ' (vos)' : ''}
+                  </span>
                 </span>
                 <span className="flex items-center gap-3">
                   <span className="text-tinta-suave text-sm">

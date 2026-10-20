@@ -1,10 +1,18 @@
 import { requireUser } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
+import { inicialDe, personasDeLaCasa, tonoDe } from '@/lib/casas/personas'
 import { addToPair as sumarEnPar, zeroPair, type MoneyPair } from '@/lib/money'
 
 export type MiembroReparto = {
   membershipId: string
   nombre: string
+  /**
+   * Su inicial y su tono en la casa (`lib/casas/personas.ts`), para el avatar y
+   * la barra. Llegan calculados: el editor es un componente cliente y
+   * `personas.ts` trae la consulta del servidor.
+   */
+  inicial: string
+  tono: number
   esAdminDelResiduo: boolean
   percent: number
   /** Lo que ya se le cargó de esta lista en los meses abiertos. */
@@ -49,10 +57,13 @@ export async function vistaDePorcentajes(listaId: string): Promise<VistaPorcenta
         .order('month'),
     ])
 
-  const { data: perfiles } = await supabase
-    .from('profiles')
-    .select('id, display_name')
-    .in('id', (membresias ?? []).map((m) => m.user_id))
+  const [{ data: perfiles }, personas] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id, display_name')
+      .in('id', (membresias ?? []).map((m) => m.user_id)),
+    personasDeLaCasa(),
+  ])
 
   const nombrePorUsuario = new Map((perfiles ?? []).map((p) => [p.id, p.display_name]))
   const porcentajePorMiembro = new Map(
@@ -97,6 +108,8 @@ export async function vistaDePorcentajes(listaId: string): Promise<VistaPorcenta
   const miembros: MiembroReparto[] = (membresias ?? []).map((m) => ({
     membershipId: m.id,
     nombre: nombrePorUsuario.get(m.user_id) || 'Sin nombre',
+    inicial: inicialDe(nombrePorUsuario.get(m.user_id) || 'Sin nombre'),
+    tono: tonoDe(personas, m.id),
     esAdminDelResiduo: m.id === adminResiduo,
     percent: porcentajePorMiembro.get(m.id) ?? 0,
     cargoActual: cargoPorMiembro.get(m.id) ?? zeroPair(),

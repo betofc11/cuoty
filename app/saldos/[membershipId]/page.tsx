@@ -3,9 +3,11 @@ import { notFound } from 'next/navigation'
 
 import { SaldoPar } from '@/components/dinero/saldo'
 import { AccionFija } from '@/components/ui/accion-fija'
+import { Avatar } from '@/components/ui/avatar'
 import { BackLink } from '@/components/ui/back-link'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { contextoDeCasa } from '@/lib/casas/activa'
+import { inicialDe, personasDeLaCasa, tonoDe } from '@/lib/casas/personas'
 import { fechaCorta, nombreDeMes } from '@/lib/fechas'
 import { formatMoney, isZero } from '@/lib/money'
 import { detalleDeSaldo } from '@/lib/saldos/consultas'
@@ -17,7 +19,10 @@ export default async function SaldoDeMiembroPage({
 }) {
   const { membershipId } = await params
   const { activa } = await contextoDeCasa()
-  const detalle = await detalleDeSaldo(membershipId)
+  const [detalle, personas] = await Promise.all([
+    detalleDeSaldo(membershipId),
+    personasDeLaCasa(),
+  ])
 
   if (!detalle) notFound()
 
@@ -30,9 +35,16 @@ export default async function SaldoDeMiembroPage({
       <OfflineBanner />
 
       <header className="flex flex-col gap-3">
-        <h1 className="text-tinta text-xl font-semibold">
-          {detalle.esYo ? 'Mi saldo' : `Saldo de ${detalle.nombre}`}
-        </h1>
+        <div className="flex items-center gap-3">
+          <Avatar
+            inicial={inicialDe(detalle.nombre)}
+            tono={tonoDe(personas, detalle.membershipId)}
+            tamano="grande"
+          />
+          <h1 className="text-tinta text-xl font-semibold">
+            {detalle.esYo ? 'Mi saldo' : `Saldo de ${detalle.nombre}`}
+          </h1>
+        </div>
         <span className="text-tinta-suave text-sm">
           {alDia ? 'Sin nada pendiente' : 'Le queda por abonar'}
         </span>

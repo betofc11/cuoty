@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { Avatar } from '@/components/ui/avatar'
 import { Logo } from '@/components/ui/logo'
 import type { Casa } from '@/lib/auth/session'
 
@@ -9,10 +10,13 @@ export function Navbar({
   activa,
   casas,
   inicial,
+  tono,
 }: {
   activa: Casa
   casas: Casa[]
   inicial: string
+  /** Mi tono en la casa activa: el mismo con el que me ven en los saldos. */
+  tono: number
 }) {
   return (
     // Del color del fondo y no de la superficie: es lo que queda justo bajo la
@@ -35,13 +39,7 @@ export function Navbar({
           aria-label="Mi cuenta"
           className="flex size-12 shrink-0 items-center justify-center"
         >
-          <span
-            aria-hidden="true"
-            className="border-borde bg-superficie text-tinta flex size-10 items-center
-                       justify-center rounded-full border text-base font-semibold"
-          >
-            {inicial}
-          </span>
+          <Avatar inicial={inicial} tono={tono} tamano="grande" />
         </Link>
       </div>
     </header>
