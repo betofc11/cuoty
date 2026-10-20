@@ -7,7 +7,7 @@
  * letra blanca (`lib/casas/color.ts`), para que un chip de casa no se confunda
  * con una persona.
  *
- * El color va por `style` y variables CSS, como `BadgeEtiqueta`: el tono se
+ * El color va por `style` y variables CSS, como el chip de etiqueta de Compras: el tono se
  * decide en runtime y Tailwind solo genera las clases que ve escritas.
  */
 export function Avatar({

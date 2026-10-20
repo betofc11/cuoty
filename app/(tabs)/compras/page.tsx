@@ -11,7 +11,9 @@ import {
   type TagVista,
   type TiendaConteo,
 } from '@/lib/compras/consultas'
+import { agruparPorTienda } from '@/lib/compras/grupos'
 import { tonoDeEtiqueta } from '@/lib/compras/tonos'
+import { fechaCorta } from '@/lib/fechas'
 
 import { archivarComprados } from '@/app/compras/acciones'
 import { AgregarItem } from '@/app/compras/agregar'
@@ -106,6 +108,49 @@ function Escoba() {
 
 const ROTULO = 'text-tinta-suave text-sm font-medium'
 
+/**
+ * Un tramo de la lista con su título: el de cada tienda y el de lo comprado
+ * hoy. El número se lee en la pantalla; el lector de pantalla oye la frase.
+ */
+function Grupo({
+  id,
+  titulo,
+  cuenta,
+  cuentaLarga,
+  children,
+}: {
+  id: string
+  titulo: string
+  cuenta: number
+  cuentaLarga: string
+  children: React.ReactNode
+}) {
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-2">
+      <h2
+        id={id}
+        className="text-tinta flex items-baseline justify-between gap-3 px-1 text-base font-semibold"
+      >
+        {titulo}
+        <span aria-hidden="true" className="text-tinta-suave text-sm font-normal">
+          {cuenta}
+        </span>
+        <span className="sr-only">, {cuentaLarga}</span>
+      </h2>
+      {/* `overflow-hidden` para que el fondo al presionar una fila respete
+          las esquinas de la tarjeta. */}
+      <ul className="border-borde bg-superficie-alta divide-borde-suave divide-y overflow-hidden rounded-2xl border">
+        {children}
+      </ul>
+    </section>
+  )
+}
+
+/** «1 pendiente», «3 pendientes». */
+function pendientes(n: number): string {
+  return `${n} ${n === 1 ? 'pendiente' : 'pendientes'}`
+}
+
 const BOTON_SECUNDARIO =
   'min-h-touch border-borde bg-superficie-alta text-tinta flex flex-1 items-center ' +
   'justify-center rounded-2xl border px-4 text-base font-semibold'
@@ -132,7 +177,7 @@ function ChipTienda({
             }`
       }
       // Seleccionada va en tinta, no en la marca: la marca es para las acciones.
-      // La etiqueta activa lleva su tono; la tienda, como su badge, va en neutro.
+      // La etiqueta activa lleva su tono; la tienda va en neutro.
       className={`${CHIP} ${activo ? 'border-tinta bg-tinta text-fondo' : CHIP_APAGADO}`}
     >
       {tienda.nombre}
@@ -164,10 +209,9 @@ function ChipEtiqueta({
       aria-current={activo ? 'true' : undefined}
       aria-label={activo ? `Quitar el filtro ${tag.nombre}` : undefined}
       className={`${CHIP} ${activo ? 'border-transparent' : CHIP_APAGADO}`}
-      // El relleno es el tono de la etiqueta, el mismo que lleva su badge en
-      // la fila. El texto va del color de la superficie: en claro el tono es
-      // oscuro y en oscuro es claro, así que invertirlo sirve en los dos
-      // temas sin una segunda paleta.
+      // El relleno es el tono de la etiqueta. El texto va del color de la
+      // superficie: en claro el tono es oscuro y en oscuro es claro, así que
+      // invertirlo sirve en los dos temas sin una segunda paleta.
       style={activo ? { backgroundColor: tono, color: 'var(--superficie-alta)' } : undefined}
     >
       {tag.nombre}
@@ -202,8 +246,11 @@ export default async function ComprasPage({
   const tiendaActiva = vista.tiendas.find((t) => t.id === filtros.tienda)
   const tagActiva = vista.tags.find((t) => t.id === filtros.tag)
 
-  // Lo de hoy va arriba, con lo pendiente: es la lista de este mandado.
-  const enLista = [...vista.items, ...vista.compradosHoy]
+  const grupos = agruparPorTienda(vista.items)
+
+  // «Probá quitando un filtro» solo sirve si sin el filtro hay algo pendiente.
+  // Con la casa al día, quitarlo lleva a «Ya está todo comprado» y nada más.
+  const filtroEscondePendientes = hayFiltro && vista.totalPendientes > 0
 
   return (
     <>
@@ -352,10 +399,9 @@ export default async function ComprasPage({
               </div>
             ) : null}
 
-            {hayFiltro ? (
+            {filtroEscondePendientes ? (
               <p className="text-tinta-suave text-sm">
-                {enLista.length} de {vista.totalPendientes}{' '}
-                {vista.totalPendientes === 1 ? 'item' : 'items'}
+                {vista.items.length} de {pendientes(vista.totalPendientes)}
               </p>
             ) : null}
           </div>
@@ -374,22 +420,31 @@ export default async function ComprasPage({
 
         {/* Dos vacíos distintos, y mandan a lugares distintos: no encontré
             nada / ya está todo comprado. Decirle «quitá un filtro» a quien
-            no puso ninguno es peor que no decir nada. */}
-        {!vista.listaVacia && enLista.length === 0 ? (
+            no puso ninguno, o a quien no le sirve quitarlo, es peor que no
+            decir nada. Hablan de lo pendiente: lo comprado que pase el
+            filtro sale igual abajo, en su sección, y un «nada que coincida»
+            encima lo contradiría. */}
+        {!vista.listaVacia && vista.items.length === 0 ? (
           <section className="border-borde-suave flex flex-col gap-3 rounded-2xl border border-dashed p-5">
             <h2 className="text-tinta text-base font-semibold">
-              {hayFiltro
+              {filtroEscondePendientes
                 ? filtros.q
-                  ? `Nada que coincida con «${filtros.q}»`
-                  : 'Nada con esos filtros'
+                  ? `Nada pendiente que coincida con «${filtros.q}»`
+                  : 'Nada pendiente con esos filtros'
                 : 'Ya está todo comprado'}
             </h2>
-            <p className="text-tinta-suave text-base">
-              {hayFiltro
-                ? 'Probá quitando algún filtro.'
-                : 'Lo que compraron quedó abajo, en «Ver artículos comprados».'}
-            </p>
-            {hayFiltro ? (
+            {filtroEscondePendientes ? (
+              <p className="text-tinta-suave text-base">Probá quitando algún filtro.</p>
+            ) : vista.compradosHoy.length > 0 ? (
+              <p className="text-tinta-suave text-base">
+                Lo de hoy quedó abajo, por si hay que desmarcar algo.
+              </p>
+            ) : vista.compradosAntes.length > 0 ? (
+              <p className="text-tinta-suave text-base">
+                Lo que compraron quedó abajo, en «Ver artículos comprados».
+              </p>
+            ) : null}
+            {filtroEscondePendientes ? (
               <Link
                 href={enlace(filtros, abierto, { tienda: '', tag: '', q: '' })}
                 className="min-h-touch border-borde bg-superficie-alta text-tinta flex items-center
@@ -401,15 +456,42 @@ export default async function ComprasPage({
           </section>
         ) : null}
 
-        {/* Lista plana: la tienda va como badge en cada fila, no como
-            encabezado de grupo. Con una casa que compra en tres lugares,
-            agrupar partía la lista en tres listas de dos líneas. */}
-        {enLista.length > 0 ? (
-          <ul className="flex flex-col gap-2.5">
-            {enLista.map((item) => (
+        {/* Un grupo por tienda, con «Cualquiera» al final: la tienda se dice
+            una vez y no en cada fila. Ver `lib/compras/grupos.ts`. */}
+        {grupos.map((g) => (
+          <Grupo
+            key={g.tienda.id}
+            id={`grupo-${g.tienda.id}`}
+            titulo={g.tienda.esPredeterminada ? 'En cualquier tienda' : g.tienda.nombre}
+            cuenta={g.items.length}
+            cuentaLarga={pendientes(g.items.length)}
+          >
+            {g.items.map((item) => (
               <FilaItem key={item.id} item={item} />
             ))}
-          </ul>
+          </Grupo>
+        ))}
+
+        {/* Lo marcado hoy no se va de la pantalla: si al tocar la casilla el
+            item desapareciera, deshacer un toque errado obligaría a abrir el
+            acordeón. Lo último que se marcó va primero. */}
+        {vista.compradosHoy.length > 0 ? (
+          <Grupo
+            id="grupo-comprado-hoy"
+            titulo="Comprado hoy"
+            cuenta={vista.compradosHoy.length}
+            cuentaLarga={`${vista.compradosHoy.length} ${
+              vista.compradosHoy.length === 1 ? 'item' : 'items'
+            }`}
+          >
+            {vista.compradosHoy.map((item) => (
+              <FilaComprada
+                key={item.id}
+                item={item}
+                marca={item.compradoPor ? { previo: ', lo marcó ', texto: item.compradoPor } : null}
+              />
+            ))}
+          </Grupo>
         ) : null}
 
         {vista.compradosAntes.length > 0 ? (
@@ -423,9 +505,23 @@ export default async function ComprasPage({
                 ▾
               </span>
             </summary>
-            <ul className="border-borde-suave divide-borde-suave divide-y border-t">
+            {/* El recorte va en la lista y no en el `<details>`: ahí cortaba
+                el anillo de foco del `<summary>`. Sin recorte, la última fila
+                presionada pintaba esquinas cuadradas sobre la tarjeta. */}
+            <ul className="border-borde-suave divide-borde-suave divide-y overflow-hidden rounded-b-2xl border-t">
               {vista.compradosAntes.map((item) => (
-                <FilaComprada key={item.id} item={item} />
+                <FilaComprada
+                  key={item.id}
+                  item={item}
+                  editable
+                  // La fecha relativa sale del servidor: calculada en el
+                  // cliente, una página guardada de otro día no hidrataba.
+                  marca={
+                    item.compradoEl
+                      ? { previo: ', comprado ', texto: fechaCorta(item.compradoEl) }
+                      : null
+                  }
+                />
               ))}
             </ul>
           </details>

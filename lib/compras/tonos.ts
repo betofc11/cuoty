@@ -1,16 +1,16 @@
 /**
  * El color de una etiqueta.
  *
- * En el prototipo cada etiqueta tiene tono propio («Frescos» verde,
- * «Limpieza» teal) y la tienda va siempre en neutro: así, dentro de la
- * fila, se leen como dos cosas distintas sin necesidad de rótulo.
+ * Hoy solo lo lleva el chip de la etiqueta puesta en los filtros de
+ * Compras. Las filas de la lista no muestran etiquetas desde la fase 1 del
+ * rediseño: la fila es de una línea, y las etiquetas sirven para filtrar,
+ * no para leerse en cada item.
  *
  * El tono sale de la POSICIÓN de la etiqueta en la lista de la casa, no de
  * un hash del id. Con hash, dos etiquetas de la misma casa caen en el
  * mismo color demasiado seguido — con 4 etiquetas y 8 tonos, más de la
- * mitad de las veces — y dos badges idénticos en la misma fila son justo
- * lo que el color venía a evitar. Por posición, una casa con 8 etiquetas o
- * menos nunca repite.
+ * mitad de las veces. Por posición, una casa con 8 etiquetas o menos nunca
+ * repite.
  *
  * El costo es que agregar una etiqueta que ordena antes corre los tonos de
  * las demás. Se paga: las etiquetas se arman una vez y el tono es
@@ -26,13 +26,4 @@ export function tonoPorPosicion(indice: number): number {
 /** Devuelve la referencia a la variable CSS, no el hex: el tema la resuelve. */
 export function tonoDeEtiqueta(tono: number): string {
   return `var(--etiqueta-${tono})`
-}
-
-/**
- * El fondo tenue del mismo tono. Se mezcla contra la superficie en vez de
- * fijar un segundo hex por tono, así el tenue sigue solo al tema: en claro
- * aclara y en oscuro oscurece, sin duplicar la paleta.
- */
-export function fondoDeTono(tono: string): string {
-  return `color-mix(in oklab, ${tono} 15%, var(--superficie-alta))`
 }

@@ -63,16 +63,22 @@ export async function agregarItem(
   return { ok: `Se agregó ${nombre}.` }
 }
 
-export async function alternarComprado(formData: FormData): Promise<void> {
-  const itemId = String(formData.get('itemId') ?? '')
-  const comprar = String(formData.get('comprar') ?? '') === 'si'
-  if (!itemId) return
+/**
+ * Marca o desmarca un item. Recibe argumentos y devuelve el error, en vez de
+ * recibir un formulario y tragárselo: la fila de la lista la llama dentro de
+ * un try/catch, así un fallo se muestra en esa fila y la lista sigue en pie.
+ */
+export async function marcarComprado(
+  itemId: string,
+  comprar: boolean,
+): Promise<EstadoCompras> {
+  if (!itemId) return fallo('No encontramos ese item.')
 
   const { supabase, user } = await requireUser()
 
   // purchased_at y status van juntos o el CHECK del esquema rechaza la
   // fila: no hay forma de dejar un "comprado sin fecha".
-  await supabase
+  const { data, error } = await supabase
     .from('shopping_items')
     .update(
       comprar
@@ -80,8 +86,34 @@ export async function alternarComprado(formData: FormData): Promise<void> {
         : { status: 'pending', purchased_at: null, purchased_by: null },
     )
     .eq('id', itemId)
+    // Archivado ya no está en la lista, y el CHECK `shopping_items_status_shape`
+    // rechaza pending o purchased con archived_at puesto: sin este filtro, el
+    // rechazo salía como «Probá de nuevo», que nunca iba a funcionar.
+    .is('archived_at', null)
+    .select('id')
 
+  // También ante un error: si el item cambió por otro lado, la lista tiene
+  // que mostrar cómo quedó de verdad.
   refrescar(itemId)
+
+  if (error) {
+    console.error('[cuoty] compras:', error.message)
+    return fallo('No se pudo guardar. Probá de nuevo.')
+  }
+
+  // Sin error y sin filas: alguien lo borró o lo archivó mientras tanto.
+  // RLS no avisa, simplemente no encuentra nada que actualizar.
+  if (!data?.length) return fallo('Ese item ya no está en la lista.')
+
+  return {}
+}
+
+/** La versión de formulario, para el botón del detalle del item. */
+export async function alternarComprado(formData: FormData): Promise<void> {
+  await marcarComprado(
+    String(formData.get('itemId') ?? ''),
+    String(formData.get('comprar') ?? '') === 'si',
+  )
 }
 
 export async function editarItem(

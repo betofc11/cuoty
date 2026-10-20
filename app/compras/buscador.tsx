@@ -60,8 +60,8 @@ export function Buscador({ inicial }: { inicial: string }) {
       </label>
 
       {/* La lupa es lo que hace que el campo se lea como buscador y no como
-          una tarjeta más: sin ella, buscador y filas de item comparten
-          borde, radio y fondo, y parecen lo mismo. */}
+          una tarjeta más: sin ella, buscador y tarjetas de la lista
+          comparten borde, radio y fondo, y parecen lo mismo. */}
       <span
         aria-hidden="true"
         className="text-tinta-suave pointer-events-none absolute inset-y-0 left-4 flex items-center"

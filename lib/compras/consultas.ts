@@ -33,11 +33,11 @@ export type ItemVista = {
 export type TiendaConteo = TiendaVista & { pendientes: number }
 
 export type VistaCompras = {
-  /** Pendientes que pasaron el filtro. Lista plana: la tienda va en la fila. */
+  /** Pendientes que pasaron el filtro. La página los agrupa por tienda (`lib/compras/grupos.ts`). */
   items: ItemVista[]
-  /** Marcados hoy. Quedan a la vista para poder deshacer el toque. */
+  /** Marcados hoy, lo último primero. Quedan a la vista para deshacer el toque. */
   compradosHoy: ItemVista[]
-  /** Marcados antes de hoy. Viven en el acordeón del pie. */
+  /** Marcados antes de hoy, lo último primero. Viven en el acordeón del pie. */
   compradosAntes: ItemVista[]
   /** Solo las tiendas con pendientes, más la que esté filtrada. */
   tiendas: TiendaConteo[]
@@ -195,7 +195,13 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
 
   // Lo marcado hoy no se va de la lista: si al tocar la casilla el item
   // desapareciera, deshacer un toque errado obligaría a abrir el acordeón.
-  const compradosFiltrados = yaComprados.filter(pasaTodo)
+  // Por fecha de compra y no de alta: el toque que uno quiere deshacer es
+  // el último, y tiene que quedar arriba. Se compara el instante y no el
+  // texto: Postgres recorta los ceros de los milisegundos («…12+00:00» al
+  // lado de «…12.5+00:00»), así que el ISO no tiene largo fijo.
+  const compradosFiltrados = yaComprados
+    .filter(pasaTodo)
+    .sort((a, b) => Date.parse(b.compradoEl ?? '') - Date.parse(a.compradoEl ?? ''))
 
   return {
     items: sinComprar.filter(pasaTodo),
