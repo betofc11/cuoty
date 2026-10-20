@@ -13,6 +13,7 @@ import {
 } from '@/lib/compras/consultas'
 import { agruparPorTienda } from '@/lib/compras/grupos'
 import { tonoDeEtiqueta } from '@/lib/compras/tonos'
+import { fechaCorta } from '@/lib/fechas'
 
 import { archivarComprados } from '@/app/compras/acciones'
 import { AgregarItem } from '@/app/compras/agregar'
@@ -247,6 +248,10 @@ export default async function ComprasPage({
 
   const grupos = agruparPorTienda(vista.items)
 
+  // «Probá quitando un filtro» solo sirve si sin el filtro hay algo pendiente.
+  // Con la casa al día, quitarlo lleva a «Ya está todo comprado» y nada más.
+  const filtroEscondePendientes = hayFiltro && vista.totalPendientes > 0
+
   return (
     <>
       <RealtimeCompras casaId={activa.id} />
@@ -394,7 +399,7 @@ export default async function ComprasPage({
               </div>
             ) : null}
 
-            {hayFiltro ? (
+            {filtroEscondePendientes ? (
               <p className="text-tinta-suave text-sm">
                 {vista.items.length} de {pendientes(vista.totalPendientes)}
               </p>
@@ -415,26 +420,31 @@ export default async function ComprasPage({
 
         {/* Dos vacíos distintos, y mandan a lugares distintos: no encontré
             nada / ya está todo comprado. Decirle «quitá un filtro» a quien
-            no puso ninguno es peor que no decir nada. Hablan de lo
-            pendiente: lo comprado que pase el filtro sale igual abajo, en su
-            sección, y un «nada que coincida» encima lo contradiría. */}
+            no puso ninguno, o a quien no le sirve quitarlo, es peor que no
+            decir nada. Hablan de lo pendiente: lo comprado que pase el
+            filtro sale igual abajo, en su sección, y un «nada que coincida»
+            encima lo contradiría. */}
         {!vista.listaVacia && vista.items.length === 0 ? (
           <section className="border-borde-suave flex flex-col gap-3 rounded-2xl border border-dashed p-5">
             <h2 className="text-tinta text-base font-semibold">
-              {hayFiltro
+              {filtroEscondePendientes
                 ? filtros.q
                   ? `Nada pendiente que coincida con «${filtros.q}»`
                   : 'Nada pendiente con esos filtros'
                 : 'Ya está todo comprado'}
             </h2>
-            <p className="text-tinta-suave text-base">
-              {hayFiltro
-                ? 'Probá quitando algún filtro.'
-                : vista.compradosHoy.length > 0
-                  ? 'Lo de hoy quedó abajo, por si hay que desmarcar algo.'
-                  : 'Lo que compraron quedó abajo, en «Ver artículos comprados».'}
-            </p>
-            {hayFiltro ? (
+            {filtroEscondePendientes ? (
+              <p className="text-tinta-suave text-base">Probá quitando algún filtro.</p>
+            ) : vista.compradosHoy.length > 0 ? (
+              <p className="text-tinta-suave text-base">
+                Lo de hoy quedó abajo, por si hay que desmarcar algo.
+              </p>
+            ) : vista.compradosAntes.length > 0 ? (
+              <p className="text-tinta-suave text-base">
+                Lo que compraron quedó abajo, en «Ver artículos comprados».
+              </p>
+            ) : null}
+            {filtroEscondePendientes ? (
               <Link
                 href={enlace(filtros, abierto, { tienda: '', tag: '', q: '' })}
                 className="min-h-touch border-borde bg-superficie-alta text-tinta flex items-center
@@ -475,7 +485,11 @@ export default async function ComprasPage({
             }`}
           >
             {vista.compradosHoy.map((item) => (
-              <FilaComprada key={item.id} item={item} cuando="hoy" />
+              <FilaComprada
+                key={item.id}
+                item={item}
+                marca={item.compradoPor ? { previo: ', lo marcó ', texto: item.compradoPor } : null}
+              />
             ))}
           </Grupo>
         ) : null}
@@ -491,9 +505,23 @@ export default async function ComprasPage({
                 ▾
               </span>
             </summary>
-            <ul className="border-borde-suave divide-borde-suave divide-y border-t">
+            {/* El recorte va en la lista y no en el `<details>`: ahí cortaba
+                el anillo de foco del `<summary>`. Sin recorte, la última fila
+                presionada pintaba esquinas cuadradas sobre la tarjeta. */}
+            <ul className="border-borde-suave divide-borde-suave divide-y overflow-hidden rounded-b-2xl border-t">
               {vista.compradosAntes.map((item) => (
-                <FilaComprada key={item.id} item={item} cuando="antes" />
+                <FilaComprada
+                  key={item.id}
+                  item={item}
+                  editable
+                  // La fecha relativa sale del servidor: calculada en el
+                  // cliente, una página guardada de otro día no hidrataba.
+                  marca={
+                    item.compradoEl
+                      ? { previo: ', comprado ', texto: fechaCorta(item.compradoEl) }
+                      : null
+                  }
+                />
               ))}
             </ul>
           </details>

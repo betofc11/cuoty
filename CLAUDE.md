@@ -94,6 +94,41 @@ Romper cualquiera de estas es un bug, aunque el código compile.
 - **La barra de arriba es del color del fondo**, como el `theme-color`, para que no
   haya costura con la barra de estado de iOS.
 
+### Compras (rediseño de octubre de 2026)
+
+Salió de una auditoría de UX: la lista estaba diseñada para organizar y se usa para
+comprar. Cada fila apilaba cuatro capas (nombre, etiquetas con tienda, nota, autoría)
+y en el iPhone cabían tres. El principio: **la lista es para comprar; organizar va
+aparte.** Hay cinco fases y se para al final de cada una.
+
+Fase 1, hecha:
+- **Fila de una línea**: nombre y cantidad pegada («Leche · 2»). La segunda línea
+  sale solo con nota o fotos. Tienda, etiquetas y «Agregado por» no van en la fila.
+  Con nombre largo se corta el nombre, nunca la cantidad.
+- **Toda la fila marca** (`<button role="checkbox">`), con `useOptimistic`.
+  «Editar» va al final, con su palabra, y abre `/compras/[itemId]`. Antes el toque
+  grande abría el detalle, que es lo más raro en el súper.
+- **Agrupada por tienda** (`lib/compras/grupos.ts`), por nombre y con la
+  predeterminada al final como «En cualquier tienda». Revierte la lista plana de
+  antes: agrupar «partía la lista» cuando las filas tenían cuatro renglones.
+- **«Comprado hoy»** es su propia sección, lo último primero, con quién lo marcó y
+  sin «Editar». Lo de antes sigue en el acordeón, y ahí sí lleva «Editar».
+- `marcarComprado` devuelve el error en vez de tragárselo. La fila lo muestra y la
+  tilde se revierte sola.
+
+Fases que faltan, con el usuario ya de acuerdo:
+2. **Filtrar por la tienda donde estás.** Chips de tienda a la vista, sin embudo.
+   Elegir una tienda muestra lo suyo **más lo de «Cualquiera»**: hoy el filtro lo
+   esconde, y era la mayoría de lo pendiente. Etiquetas en una `<Hoja>`. Se van el
+   embudo y la escoba (los íconos solos bajan a dos).
+3. **Editar en una `<Hoja>`** que guarda cada campo al tocarlo, con la tienda en
+   chips. Después de anotar, una tira «¿Dónde se compra?» de un toque (82 % de los
+   items de la casa real terminaban movidos a mano a una tienda). Aviso de
+   «Ya está en la lista» al escribir un duplicado.
+4. Encabezado, buscador (se va el de arriba) y una sola sección «Comprado».
+5. Más adelante, con datos: que `add_shopping_item` recuerde la última tienda de
+   cada producto. Hoy casi no se repiten productos y no acertaría.
+
 ## Auth y correo
 
 Se entra con un **código numérico** que llega por correo, o con Google. No hay
@@ -185,6 +220,11 @@ La regla de color que salió de ahí (fase 1, ya hecha):
 
 `marca` era `crc`: se renombró porque el terracota ya no significa «colones».
 
+Una excepción a «enlaces en marca»: **la acción que se repite en cada fila** («Editar»
+en Compras) va en `tinta-suave`. En terracota serían siete palabras de acción
+compitiendo con los productos; la acción principal de esa fila es tocarla. La de
+una sola por pantalla o por sección («Editar» de un gasto, «Editar %») sigue en marca.
+
 **Identidad (fase 4, la última del plan de diseño):**
 
 - **Cada persona tiene un tono en su casa**: `--persona-N-fondo` y `--persona-N-tinta`,
@@ -197,7 +237,8 @@ La regla de color que salió de ahí (fase 1, ya hecha):
 - **`<Avatar>`** (`components/ui/avatar.tsx`): la inicial en su tono, siempre con el
   nombre escrito al lado. Está en la barra de arriba (mi tono en la casa activa),
   «La casa» del inicio, Saldos, el detalle de saldo, `/casa` y los repartos. En
-  Compras no, a propósito: la fila ya está llena.
+  Compras no, a propósito: la fila es de una línea y no nombra a nadie, salvo quién
+  marcó en «Comprado hoy», donde el ancho es del producto.
 - **Casa saturada, persona pálida.** Las casas (`lib/casas/color.ts`) van en color
   fuerte con letra blanca; las personas, pálidas con letra oscura. Así un chip de
   casa no se confunde con un avatar. El terracota y el ladrillo de la paleta de
@@ -360,6 +401,20 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
 
   Sin el claim, `app.is_house_admin` da false y `close_period` levanta 42501. Para la
   autoría alcanza `cuoty.actor_id`, que `current_actor()` mira antes que `auth.uid()`.
+- **Una Server Action llamada como función puede rechazar sin que falte señal.**
+  `marcarComprado` se llama dentro de un `try/catch` y los errores de la base vuelven
+  como `{ error }`, pero al `catch` llegan también: el redirect de `requireUser`
+  (dejalo seguir con `unstable_rethrow`), el `UnrecognizedActionError` de una PWA
+  abierta desde antes de un deploy (el id de la acción cambió y cada toque falla
+  hasta recargar: `unstable_isUnrecognizedActionError`), y cualquier respuesta que
+  no sea de Next. `navigator.onLine` solo es confiable cuando dice `false`: en iOS
+  da `true` con señal débil. Ver `app/compras/fila-item.tsx`.
+- **Los `timestamptz` de PostgREST no tienen largo fijo**: Postgres recorta los ceros
+  de los milisegundos («…12+00:00» al lado de «…12.5+00:00»). Para ordenar, usá
+  `Date.parse`, no comparación de texto.
+- **`shopping_items_status_shape` exige `archived_at` nulo para `pending` y
+  `purchased`.** Marcar o desmarcar algo archivado lo rechaza el CHECK (23514).
+  Filtrá con `.is('archived_at', null)` y tratalo como «ya no está en la lista».
 - **Los asientos de una misma transacción comparten `created_at`**: `now()` es el
   arranque de la transacción, no del `insert`. En `/saldos/[id]` salen en orden
   arbitrario entre ellos. Si el orden importa, separá las transacciones.
@@ -394,11 +449,14 @@ El plan de la revisión de diseño (octubre de 2026) está completo en sus cuatr
 fases: contraste y color, el marco en el iPhone, jerarquía y textos, e identidad.
 Lo que salió de ahí está en «Diseños» y en «El marco».
 
+El rediseño de Compras va por la fase 1 de cinco: ver «Compras» en «Diseños».
+
 Pendiente:
 - **Foto de perfil.** `profiles.avatar_url` existe y Google la llena, pero el shell
   solo pinta la inicial y no hay forma de subir una: eso es Storage y es otra función.
 - **No hay escrituras sin conexión.** El service worker deja *leer* la lista guardada;
-  marcar comprado necesita red. Una cola de sincronización es una función aparte.
+  marcar comprado necesita red: sin señal, la fila avisa y deshace la tilde. Una
+  cola de sincronización es una función aparte.
 - Rotar el código de invitación y sacar miembros (la pantalla `/casa` lo dice).
 - UI de reversa/devolución de abonos.
 - **No hay forma de cargar deuda vieja desde la UI**, la de antes de empezar a usar

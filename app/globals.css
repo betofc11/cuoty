@@ -45,11 +45,11 @@
   --peligro: #b4233c;
   --ok: #2f6d42;
 
-  /* Tonos de etiqueta. El prototipo le da color propio a cada etiqueta
-     («Frescos» verde, «Limpieza» teal) y deja la tienda en neutro, para
-     que en la fila se lean como dos cosas distintas. El tono se elige en
-     runtime a partir del id (lib/compras/tonos), así que van como
-     variables y no como clases: Tailwind solo genera lo que ve escrito. */
+  /* Tonos de etiqueta. Hoy solo los lleva el chip de la etiqueta puesta
+     en los filtros de Compras: las filas ya no muestran etiquetas. El tono
+     se elige en runtime por la posición de la etiqueta en la casa
+     (lib/compras/tonos), así que van como variables y no como clases:
+     Tailwind solo genera lo que ve escrito. */
   --etiqueta-1: #4a6631;
   --etiqueta-2: #186a75;
   --etiqueta-3: #7a5618;
@@ -103,8 +103,8 @@
     --peligro: #f0707f;
     --ok: #6bbf85;
 
-    /* Los mismos ocho tonos, aclarados: sobre superficie oscura el tono
-       claro es el texto y la mezcla al 15% es el fondo. */
+    /* Los mismos ocho tonos, aclarados: en oscuro el chip lleno es claro y
+       la letra, del color de la superficie. */
     --etiqueta-1: #9dc47c;
     --etiqueta-2: #5fbcc6;
     --etiqueta-3: #d9ac62;

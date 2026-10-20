@@ -86,6 +86,10 @@ export async function marcarComprado(
         : { status: 'pending', purchased_at: null, purchased_by: null },
     )
     .eq('id', itemId)
+    // Archivado ya no está en la lista, y el CHECK `shopping_items_status_shape`
+    // rechaza pending o purchased con archived_at puesto: sin este filtro, el
+    // rechazo salía como «Probá de nuevo», que nunca iba a funcionar.
+    .is('archived_at', null)
     .select('id')
 
   // También ante un error: si el item cambió por otro lado, la lista tiene
@@ -97,8 +101,8 @@ export async function marcarComprado(
     return fallo('No se pudo guardar. Probá de nuevo.')
   }
 
-  // Sin error y sin filas: alguien lo borró mientras tanto. RLS no avisa,
-  // simplemente no encuentra nada que actualizar.
+  // Sin error y sin filas: alguien lo borró o lo archivó mientras tanto.
+  // RLS no avisa, simplemente no encuentra nada que actualizar.
   if (!data?.length) return fallo('Ese item ya no está en la lista.')
 
   return {}
