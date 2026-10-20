@@ -10,6 +10,8 @@ export type EstadoCompras = {
   ok?: string
   /** El item recién creado: la tira «¿Dónde se compra?» lo mueve con un toque. */
   itemId?: string
+  /** Dónde quedó el item recién creado: la elegida, la de la última vez o «Cualquiera». */
+  tiendaId?: string
 }
 
 /** Un solo lugar donde se decide qué se le muestra al usuario ante un fallo. */
@@ -67,8 +69,25 @@ export async function agregarItem(
 
   if (error) return fallo(error.message)
 
+  // Sin tienda elegida, la elige `add_shopping_item`: la de la última vez que
+  // la casa anotó ese producto, o «Cualquiera». La tira de `agregar.tsx` dice
+  // cuál fue, así que hay que preguntarlo: la función devuelve solo el id.
+  let dondeQuedo = tiendaId
+  if (!dondeQuedo && itemId) {
+    const { data } = await supabase
+      .from('shopping_items')
+      .select('store_id')
+      .eq('id', itemId)
+      .maybeSingle()
+    dondeQuedo = data?.store_id ?? null
+  }
+
   refrescar()
-  return { ok: `Se agregó ${nombre}.`, itemId: itemId ?? undefined }
+  return {
+    ok: `Se agregó ${nombre}.`,
+    itemId: itemId ?? undefined,
+    tiendaId: dondeQuedo ?? undefined,
+  }
 }
 
 /**

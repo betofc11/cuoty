@@ -3,8 +3,8 @@ import { IDS } from './falso/datos.mjs'
 import { expect, falso, filas, pestana, test, titulo } from './apoyo'
 
 /*
- * Fase 3 del rediseño de Compras: editar sin salir de la lista, y la tienda al
- * anotar. En `datos.mjs` la leche está en Walmart, con cantidad «2» y la
+ * Fases 3 y 5 del rediseño de Compras: editar sin salir de la lista, y la
+ * tienda al anotar. En `datos.mjs` la leche está en Walmart, con cantidad «2» y la
  * etiqueta «Frescos»; Walmart tiene además Pinol, y Automercado el café.
  */
 
@@ -155,6 +155,44 @@ test('la tira de la tienda se va al escribir lo siguiente', async ({ page }) => 
   await campo.fill('Frijoles')
 
   await expect(page.getByRole('navigation', { name: 'Dónde se compra Arroz' })).toHaveCount(0)
+})
+
+// ─────────── fase 5: la lista recuerda dónde se compra cada producto ───────────
+// En `datos.mjs`, el jabón de platos se compró antes de hoy en Walmart, y el pan
+// está pendiente en «Cualquiera».
+
+test('lo que ya se anotó antes vuelve a su tienda, y la tira lo dice', async ({ page }) => {
+  await page.getByRole('textbox', { name: 'Qué hay que comprar' }).fill('Jabón de platos')
+  await page.getByRole('button', { name: 'Agregar item' }).tap()
+
+  await expect(page.getByText('Jabón de platos quedó en Walmart, como la última vez.')).toBeVisible()
+  await expect(grupo(page, 'Walmart').getByRole('checkbox', { name: /Jabón de platos/ })).not.toBeChecked()
+
+  // La tira ofrece las otras, y también volver a «Cualquiera».
+  const tira = page.getByRole('navigation', { name: 'Dónde se compra Jabón de platos' })
+  await expect(tira.getByRole('button')).toHaveText(['Cualquiera', 'Automercado'])
+
+  await tira.getByRole('button', { name: 'Automercado' }).tap()
+
+  await expect(page.getByText('Jabón de platos pasó a Automercado.')).toBeVisible()
+  await expect(grupo(page, 'Automercado').getByRole('checkbox', { name: /Jabón de platos/ })).toBeVisible()
+})
+
+test('si la última vez quedó en cualquier tienda, ahí queda', async ({ page }) => {
+  await page.getByRole('textbox', { name: 'Qué hay que comprar' }).fill('Pan cuadrado')
+  await page.getByRole('button', { name: 'Agregar item' }).tap()
+
+  await expect(page.getByText('Pan cuadrado quedó en cualquier tienda. ¿Dónde se compra?')).toBeVisible()
+  await expect(grupo(page, 'En cualquier tienda').getByRole('checkbox', { name: /Pan cuadrado/ })).toHaveCount(2)
+})
+
+test('la tienda elegida le gana a la memoria', async ({ page }) => {
+  await page.goto(`/compras?tienda=${AUTOMERCADO}`)
+  await page.getByRole('textbox', { name: 'Qué hay que comprar' }).fill('Jabón de platos')
+  await page.getByRole('button', { name: 'Agregar item' }).tap()
+
+  await expect(grupo(page, 'Automercado').getByRole('checkbox', { name: /Jabón de platos/ })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: /Dónde se compra/ })).toHaveCount(0)
 })
 
 test('con una tienda elegida, lo nuevo cae ahí directo', async ({ page }) => {

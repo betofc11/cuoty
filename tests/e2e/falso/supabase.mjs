@@ -202,8 +202,15 @@ const RPC = {
       }
       tablas.products.push(producto)
     }
+    // Como la función real desde la fase 5: sin tienda elegida, la del último
+    // item de ese producto en la casa; si no hay, la predeterminada.
+    const ultimo = tablas.shopping_items
+      .filter((i) => i.house_id === p_house_id && i.product_id === producto.id)
+      .sort((x, y) => Date.parse(y.created_at) - Date.parse(x.created_at))[0]
     const tienda =
-      p_store_id ?? tablas.stores.find((s) => s.house_id === p_house_id && s.is_default)?.id
+      p_store_id ??
+      ultimo?.store_id ??
+      tablas.stores.find((s) => s.house_id === p_house_id && s.is_default)?.id
     const ahora = new Date().toISOString()
     const item = {
       id: randomUUID(),

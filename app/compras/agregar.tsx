@@ -11,19 +11,31 @@ import { Carrusel } from './carrusel'
 import { CHIP, CHIP_APAGADO } from './chips'
 import { avisoDeFallo, type Aviso } from './fallo'
 
-/** Lo que se acaba de anotar en «Cualquiera», para mandarlo a su tienda. */
-type Recien = { id: string; nombre: string }
+/** Lo que se acaba de anotar y dónde quedó, para mandarlo a otra tienda de un toque. */
+type Recien = { id: string; nombre: string; tienda: TiendaVista }
 
 /**
- * Alta rápida: un campo y listo. Cae en la tienda predeterminada y sin
- * etiquetas, o en la tienda elegida si estás en el súper («Agregar a
- * Walmart»). Pedir todo de entrada convierte "anotá el pan" en un formulario,
- * y entonces nadie anota nada.
+ * A dónde ofrece mandarlo la tira. Desde «Cualquiera», a cualquier tienda
+ * concreta. Desde la tienda de la última vez, a cualquier otra, y también de
+ * vuelta a «Cualquiera».
+ */
+function destinos(tiendas: TiendaVista[], actual: TiendaVista): TiendaVista[] {
+  return actual.esPredeterminada
+    ? tiendas.filter((t) => !t.esPredeterminada)
+    : tiendas.filter((t) => t.id !== actual.id)
+}
+
+/**
+ * Alta rápida: un campo y listo, sin etiquetas. Cae en la tienda elegida si
+ * estás en el súper («Agregar a Walmart»). Si no, la elige
+ * `add_shopping_item`: la de la última vez que la casa anotó ese producto, o
+ * «Cualquiera» si es nuevo. Pedir todo de entrada convierte "anotá el pan" en
+ * un formulario, y entonces nadie anota nada.
  *
- * Lo que sí se ofrece es la tienda, después y de un toque: la tira «¿Dónde se
- * compra?» aparece con lo recién anotado y se va sola al escribir lo
- * siguiente. En la casa real, 82 % de los items terminaban movidos a mano a
- * una tienda, por el detalle y en cinco pasos.
+ * Lo que sí se ofrece es la tienda, después y de un toque: la tira aparece con
+ * lo recién anotado, dice dónde quedó, y se va sola al escribir lo siguiente.
+ * En la casa real, 82 % de los items terminaban movidos a mano a una tienda,
+ * por el detalle y en cinco pasos.
  *
  * Va anclada al pie, sobre la barra de tabs: es la acción que más se
  * repite y la única que se hace con una mano en el super. Arriba
@@ -40,7 +52,7 @@ export function AgregarItem({
   tiendaElegida,
   pendientes,
 }: {
-  /** Las tiendas a las que se puede mandar lo recién anotado: sin la predeterminada. */
+  /** Todas las tiendas de la casa, con la predeterminada: la tira ofrece volver a ella. */
   tiendas: TiendaVista[]
   /** Con una tienda elegida en los filtros, lo nuevo cae ahí directo. */
   tiendaElegida: { id: string; nombre: string } | null
@@ -84,8 +96,10 @@ export function AgregarItem({
         setAviso({ texto: resultado.error })
       } else {
         setTexto('')
-        if (!tiendaElegida && resultado.itemId && tiendas.length > 0) {
-          setRecien({ id: resultado.itemId, nombre })
+        // Con una tienda elegida no hace falta: cayó donde estás.
+        const tienda = tiendas.find((t) => t.id === resultado.tiendaId)
+        if (!tiendaElegida && resultado.itemId && tienda && destinos(tiendas, tienda).length > 0) {
+          setRecien({ id: resultado.itemId, nombre, tienda })
         }
       }
     } catch (e) {
@@ -104,7 +118,9 @@ export function AgregarItem({
       if (resultado.error) {
         setAviso({ texto: resultado.error })
       } else {
-        setListo(`${recien.nombre} pasó a ${tienda.nombre}.`)
+        setListo(
+          `${recien.nombre} pasó a ${tienda.esPredeterminada ? 'cualquier tienda' : tienda.nombre}.`,
+        )
         setRecien(null)
       }
     } catch (e) {
@@ -143,12 +159,16 @@ export function AgregarItem({
 
       {recien ? (
         <div className="flex flex-col gap-1">
+          {/* Dice dónde quedó: si la memoria lo mandó a Walmart sin avisar, el
+              item aparece en un grupo que quizá ni está en pantalla. */}
           <p className="text-tinta-suave text-sm">
-            <span className="text-tinta font-semibold">{recien.nombre}</span> quedó en cualquier
-            tienda. ¿Dónde se compra?
+            <span className="text-tinta font-semibold">{recien.nombre}</span>{' '}
+            {recien.tienda.esPredeterminada
+              ? 'quedó en cualquier tienda. ¿Dónde se compra?'
+              : `quedó en ${recien.tienda.nombre}, como la última vez. ¿Va en otra?`}
           </p>
           <Carrusel etiqueta={`Dónde se compra ${recien.nombre}`} sangra>
-            {tiendas.map((t) => (
+            {destinos(tiendas, recien.tienda).map((t) => (
               <button
                 key={t.id}
                 type="button"
