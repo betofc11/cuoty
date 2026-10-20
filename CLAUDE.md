@@ -118,6 +118,14 @@ Dos cosas sobre cómo usarlos:
 La carpeta está fuera de `app/` y de `public/` para que Next no la sirva ni la
 empaquete: los diseños no van a producción.
 
+**Skill `design-taste-frontend`** (taste-skill, de `Leonxlnx/taste-skill`): vive en
+`.claude/skills/design-taste-frontend/`, instalada con
+`npx skills add Leonxlnx/taste-skill -a claude-code -y --copy`; `skills-lock.json` la
+registra y `npx skills update` la actualiza. Sus scripts dejan trabajo en
+`.taste-skill/`, que está en `.gitignore`. Su estilo de la casa (sin íconos sueltos,
+sin ornamentos) es una guía de gusto, **no manda**: el prototipo de `design/` y las
+convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo— le ganan.
+
 ## Cómo trabajar acá
 
 - **Parás al final de cada fase.** Mostrás qué se construyó, qué decisiones tomaste
