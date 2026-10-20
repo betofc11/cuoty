@@ -26,6 +26,7 @@ export const IDS = {
   pan: '00000000-0000-4000-8000-0000000000a3',
   cafe: '00000000-0000-4000-8000-0000000000a4',
   tomate: '00000000-0000-4000-8000-0000000000a5',
+  jabon: '00000000-0000-4000-8000-0000000000a6',
 }
 
 /** '2026-10-01': el primer día del mes de hoy, en Costa Rica y no en UTC. */
@@ -118,6 +119,7 @@ export function datosIniciales() {
       producto('00000000-0000-4000-8000-0000000000f3', 'Pan cuadrado'),
       producto('00000000-0000-4000-8000-0000000000f4', 'Café Britt 340g'),
       producto('00000000-0000-4000-8000-0000000000f5', 'Tomate'),
+      producto('00000000-0000-4000-8000-0000000000f6', 'Jabón de platos'),
     ],
     shopping_items: [
       item(IDS.leche, '00000000-0000-4000-8000-0000000000f1', '00000000-0000-4000-8000-0000000000d1', {
@@ -133,6 +135,12 @@ export function datosIniciales() {
         status: 'purchased',
         purchased_by: MARTA,
         purchased_at: ahora,
+      }),
+      // Comprado antes de hoy: va plegado en «Comprado», bajo «Antes de hoy».
+      item(IDS.jabon, '00000000-0000-4000-8000-0000000000f6', '00000000-0000-4000-8000-0000000000d1', {
+        status: 'purchased',
+        purchased_by: USUARIO.id,
+        purchased_at: antes,
       }),
     ],
     item_tags: [

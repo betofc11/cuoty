@@ -1,7 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 import { requireUser } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
@@ -117,14 +116,6 @@ export async function marcarComprado(
   return {}
 }
 
-/** La versión de formulario, para el botón del detalle del item. */
-export async function alternarComprado(formData: FormData): Promise<void> {
-  await marcarComprado(
-    String(formData.get('itemId') ?? ''),
-    String(formData.get('comprar') ?? '') === 'si',
-  )
-}
-
 // ────────────────────── edición desde la hoja, campo por campo ──────────────────────
 //
 // La hoja de `editor-de-item.tsx` guarda cada campo al tocarlo, sin «Guardar
@@ -231,9 +222,9 @@ export async function cambiarEtiquetas(itemId: string, tagIds: string[]): Promis
 }
 
 /**
- * Borrar desde la hoja. A diferencia de `borrarItem`, no redirige: la hoja se
- * cierra y la lista se refresca sola. El item no lleva contabilidad, así que
- * acá sí se borra de verdad (invariante 10).
+ * Borrar desde la hoja. No redirige: la hoja se cierra y la lista se refresca
+ * sola. El item no lleva contabilidad, así que acá sí se borra de verdad
+ * (invariante 10).
  */
 export async function borrarDeLaLista(itemId: string): Promise<EstadoCompras> {
   if (!itemId) return fallo('No encontramos ese item.')
@@ -250,64 +241,17 @@ export async function borrarDeLaLista(itemId: string): Promise<EstadoCompras> {
   return {}
 }
 
-export async function editarItem(
-  _prev: EstadoCompras,
-  formData: FormData,
-): Promise<EstadoCompras> {
-  const itemId = String(formData.get('itemId') ?? '')
-  if (!itemId) return fallo('No encontramos ese item.')
+/**
+ * Saca de la lista lo comprado que se está viendo, sin borrar el historial.
+ * Los ids llegan de la sección «Comprado»: con un filtro puesto se archiva lo
+ * que pasó el filtro y nada más, así el botón hace lo que muestra la sección.
+ * Antes archivaba todo lo de la casa y el número del botón no coincidía con
+ * el de la lista. Lo que alguien marque mientras tanto, que nadie vio, se queda.
+ */
+export async function archivarComprados(formData: FormData): Promise<void> {
+  const ids = formData.getAll('itemId').map(String).filter(Boolean)
+  if (ids.length === 0) return
 
-  const tiendaId = String(formData.get('tiendaId') ?? '')
-  if (!tiendaId) return fallo('Elegí una tienda.')
-
-  const cantidad = String(formData.get('cantidad') ?? '').trim() || null
-  const nota = String(formData.get('nota') ?? '').trim() || null
-  const tagIds = formData.getAll('tagIds').map(String).filter(Boolean)
-
-  const { supabase } = await requireUser()
-
-  const { error } = await supabase
-    .from('shopping_items')
-    .update({ store_id: tiendaId, quantity: cantidad, note: nota })
-    .eq('id', itemId)
-
-  if (error) return fallo(error.message)
-
-  // Los tags se reemplazan enteros: comparar cuáles entraron y cuáles
-  // salieron cuesta más que rehacerlos, y son tres filas.
-  await supabase.from('item_tags').delete().eq('item_id', itemId)
-  if (tagIds.length > 0) {
-    const { error: errorTags } = await supabase
-      .from('item_tags')
-      .insert(tagIds.map((tagId) => ({ item_id: itemId, tag_id: tagId })))
-    if (errorTags) return fallo(errorTags.message)
-  }
-
-  refrescar(itemId)
-  return { ok: 'Guardado.' }
-}
-
-export async function borrarItem(formData: FormData): Promise<void> {
-  const itemId = String(formData.get('itemId') ?? '')
-  if (!itemId) return
-
-  const { supabase } = await requireUser()
-
-  // El item no lleva contabilidad, así que acá sí se borra de verdad.
-  // El ledger es lo que nunca se toca; esto es una lista de mandados.
-  await supabase.from('shopping_items').delete().eq('id', itemId)
-
-  refrescar()
-
-  // Se borra desde el detalle del item. Sin esto la página se vuelve a
-  // renderizar, no encuentra el item que acaba de desaparecer y tira un
-  // 404: el usuario ve un error después de una operación exitosa.
-  // `redirect` lanza, así que va al final.
-  redirect('/compras')
-}
-
-/** Saca de la vista todo lo ya comprado, sin borrar el historial. */
-export async function archivarComprados(): Promise<void> {
   const { supabase } = await requireUser()
   const { activa } = await contextoDeCasa()
 
@@ -316,6 +260,7 @@ export async function archivarComprados(): Promise<void> {
     .update({ status: 'archived', archived_at: new Date().toISOString() })
     .eq('house_id', activa.id)
     .eq('status', 'purchased')
+    .in('id', ids)
 
   refrescar()
 }

@@ -11,5 +11,6 @@ export declare const IDS: {
   pan: string
   cafe: string
   tomate: string
+  jabon: string
 }
 export declare function datosIniciales(): Record<string, Record<string, unknown>[]>

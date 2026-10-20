@@ -84,7 +84,7 @@ export function Fotos({
     <section className="flex flex-col gap-3">
       <h2 className="text-tinta text-base font-semibold">Fotos</h2>
       <p className="text-tinta-suave text-base">
-        Sirven para que quien vaya al super sepa exactamente cuál es. La de la etiqueta es
+        Sirven para que quien vaya al súper sepa exactamente cuál es. La de la etiqueta es
         para leer la marca y el tamaño.
       </p>
 

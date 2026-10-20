@@ -112,8 +112,8 @@ Fase 1, hecha:
 - **Agrupada por tienda** (`lib/compras/grupos.ts`), por nombre y con la
   predeterminada al final como «En cualquier tienda». Revierte la lista plana de
   antes: agrupar «partía la lista» cuando las filas tenían cuatro renglones.
-- **«Comprado hoy»** es su propia sección, lo último primero, con quién lo marcó y
-  sin «Editar». Lo de antes sigue en el acordeón, y ahí sí lleva «Editar».
+- **Lo marcado hoy queda a la vista**, lo último primero, con quién lo marcó y
+  sin «Editar». Desde la fase 4 vive dentro de la sección «Comprado».
 - `marcarComprado` devuelve el error en vez de tragárselo. La fila lo muestra y la
   tilde se revierte sola.
 
@@ -148,16 +148,33 @@ Fase 3, hecha (editar sin salir de la lista):
   función y fuera de transiciones. Tienda y etiquetas se validan contra la casa.
 - **Borrar pide confirmación** («Sí, borrar» / «No, dejarlo»): en una hoja que se
   usa a las carreras, un toque suelto no puede borrar algo que no vuelve.
-- **Las fotos siguen en `/compras/[itemId]`**, con un enlace desde la hoja. Esa
-  página todavía tiene el formulario viejo con «Guardar cambios»: queda para la
-  fase 4.
+- **Las fotos siguen en `/compras/[itemId]`**, con un enlace desde la hoja
+  («Agregar una foto» / «Ver las fotos (n)»).
 - **Al anotar**: con una tienda elegida, lo nuevo cae ahí («Agregar a Walmart…»).
   Si no, aparece la tira «¿Dónde se compra?», que se va sola al escribir lo
   siguiente. Y mientras se escribe, «Ya está en la lista: …» si algo pendiente lo
   contiene (desde tres letras, sin frenar el alta).
 
-Fases que faltan, con el usuario ya de acuerdo:
-4. Encabezado, buscador (se va el de arriba) y una sola sección «Comprado».
+Fase 4, hecha (encabezado, buscador y comprados):
+- **El encabezado es solo el `h1`.** «Faltan 7 cosas» y la línea «3 de 4
+  pendientes» de los filtros se fueron: lo dicen el chip «Todo» y el número de
+  cada grupo.
+- **Sin buscador.** Con filas de una línea agrupadas por tienda, recorrer la lista
+  es más rápido que escribir, y «Ya está en la lista» cubre la pregunta de si algo
+  ya está. Un `?q=` de un enlace viejo se ignora (`leerFiltros`).
+- **Una sola sección «Comprado»** (`SeccionComprado` en la página): lo de hoy
+  abierto, lo de antes plegado en «Antes de hoy» (con la fecha y con «Editar»), y
+  «Quitar los comprados» adentro. Antes eran tres lugares, y el botón contaba
+  otra cosa que el acordeón.
+- **«Quitar los comprados» archiva lo que muestra la sección, no toda la casa.**
+  Los ids van en el formulario: con una tienda o una etiqueta puesta, lo que no
+  se ve se queda. Y lo que alguien marque mientras tanto, que nadie vio, también.
+- **`/compras/[itemId]` es solo la página de las fotos** (`fotosDeItem`). El
+  formulario viejo con «Guardar cambios» repetía la hoja y era lo único que
+  guardaba de otra forma; se fueron con él `editarItem`, `borrarItem` y
+  `alternarComprado`.
+
+Fase que falta, con el usuario ya de acuerdo:
 5. Más adelante, con datos: que `add_shopping_item` recuerde la última tienda de
    cada producto. Hoy casi no se repiten productos y no acertaría.
 
@@ -270,7 +287,7 @@ una sola por pantalla o por sección («Editar» de un gasto, «Editar %») sigu
   nombre escrito al lado. Está en la barra de arriba (mi tono en la casa activa),
   «La casa» del inicio, Saldos, el detalle de saldo, `/casa` y los repartos. En
   Compras no, a propósito: la fila es de una línea y no nombra a nadie, salvo quién
-  marcó en «Comprado hoy», donde el ancho es del producto.
+  marcó lo de hoy en «Comprado», donde el ancho es del producto.
 - **Casa saturada, persona pálida.** Las casas (`lib/casas/color.ts`) van en color
   fuerte con letra blanca; las personas, pálidas con letra oscura. Así un chip de
   casa no se confunde con un avatar. El terracota y el ladrillo de la paleta de
@@ -333,8 +350,8 @@ el proyecto real, así que se puede correr en la nube y con sesión.
 - `tests/e2e/navegacion.spec.ts` es el guardia de la barra de pestañas: prueba
   cada pestaña desde cada pantalla y también **con una acción en vuelo**, que es
   como se rompió, y **un rato después de cargar Compras**, que es como se rompió
-  la segunda vez. Lo de Compras (marcar, deshacer, fallos, sin señal) está en
-  `compras.spec.ts`, los filtros por tienda y etiqueta en `filtros.spec.ts`, y la
+  la segunda vez. Lo de Compras (marcar, deshacer, fallos, sin señal, la sección
+  «Comprado» y archivar) está en `compras.spec.ts`, los filtros por tienda y etiqueta en `filtros.spec.ts`, y la
   hoja de edición, la tira de la tienda y el aviso de duplicado en `edicion.spec.ts`.
 - **Para cortar los servidores de prueba, buscá por nombre de proceso**
   (`ps -eo pid,comm`, el que se llama `next-server`), nunca con `pkill -f`: el
@@ -544,14 +561,15 @@ el proyecto real, así que se puede correr en la nube y con sesión.
 Funcionando: auth (código por correo + Google) con SMTP propio en Resend, nombre de
 perfil editable en `/cuenta` y obligatorio en `/bienvenida`, onboarding, gastos con
 listas y porcentajes, recurrentes, saldos y abonos, cierre de mes con arrastres,
-lista de compras completa (tiendas, etiquetas, filtros, búsqueda, comprados,
-Realtime, fotos en Storage), PWA instalable con tema claro/oscuro y service worker.
+lista de compras completa (tiendas, etiquetas, filtros, comprados, Realtime,
+fotos en Storage), PWA instalable con tema claro/oscuro y service worker.
 
 El plan de la revisión de diseño (octubre de 2026) está completo en sus cuatro
 fases: contraste y color, el marco en el iPhone, jerarquía y textos, e identidad.
 Lo que salió de ahí está en «Diseños» y en «El marco».
 
-El rediseño de Compras va por la fase 3 de cinco: ver «Compras» en «Diseños».
+El rediseño de Compras va por la fase 4 de cinco: ver «Compras» en «Diseños».
+La quinta espera datos: hoy casi no se repiten productos.
 
 Pendiente:
 - **Foto de perfil.** `profiles.avatar_url` existe y Google la llena, pero el shell
