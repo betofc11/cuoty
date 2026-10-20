@@ -3,15 +3,27 @@
 import { useState } from 'react'
 
 import { Alert } from '@/components/ui/alert'
+import type { TiendaVista } from '@/lib/compras/consultas'
+import { contiene } from '@/lib/compras/texto'
 
-import { agregarItem } from './acciones'
+import { agregarItem, moverDeTienda } from './acciones'
+import { Carrusel } from './carrusel'
+import { CHIP, CHIP_APAGADO } from './chips'
 import { avisoDeFallo, type Aviso } from './fallo'
+
+/** Lo que se acaba de anotar en «Cualquiera», para mandarlo a su tienda. */
+type Recien = { id: string; nombre: string }
 
 /**
  * Alta rápida: un campo y listo. Cae en la tienda predeterminada y sin
- * etiquetas — la tienda, la cantidad y los tags se ponen entrando al
- * item. Pedir todo eso de entrada convierte "anotá el pan" en un
- * formulario, y entonces nadie anota nada.
+ * etiquetas, o en la tienda elegida si estás en el súper («Agregar a
+ * Walmart»). Pedir todo de entrada convierte "anotá el pan" en un formulario,
+ * y entonces nadie anota nada.
+ *
+ * Lo que sí se ofrece es la tienda, después y de un toque: la tira «¿Dónde se
+ * compra?» aparece con lo recién anotado y se va sola al escribir lo
+ * siguiente. En la casa real, 82 % de los items terminaban movidos a mano a
+ * una tienda, por el detalle y en cinco pasos.
  *
  * Va anclada al pie, sobre la barra de tabs: es la acción que más se
  * repite y la única que se hace con una mano en el super. Arriba
@@ -23,26 +35,82 @@ import { avisoDeFallo, type Aviso } from './fallo'
  * `useMarcar` en `fila-item.tsx`. De paso, un fallo de red ya no tumba la
  * pantalla al `error.tsx`: se muestra acá.
  */
-export function AgregarItem() {
+export function AgregarItem({
+  tiendas,
+  tiendaElegida,
+  pendientes,
+}: {
+  /** Las tiendas a las que se puede mandar lo recién anotado: sin la predeterminada. */
+  tiendas: TiendaVista[]
+  /** Con una tienda elegida en los filtros, lo nuevo cae ahí directo. */
+  tiendaElegida: { id: string; nombre: string } | null
+  /** Los nombres de lo pendiente, para avisar «Ya está en la lista». */
+  pendientes: string[]
+}) {
   const [texto, setTexto] = useState('')
   const [pendiente, setPendiente] = useState(false)
   const [aviso, setAviso] = useState<Aviso | null>(null)
+  const [recien, setRecien] = useState<Recien | null>(null)
+  const [moviendo, setMoviendo] = useState(false)
+  const [listo, setListo] = useState<string | null>(null)
+
+  // «leche» encuentra «Leche Dos Pinos 2L». Con menos de tres letras casi todo
+  // coincide con algo, y el aviso sería ruido.
+  const buscado = texto.trim()
+  const parecidos =
+    buscado.length >= 3 ? pendientes.filter((n) => contiene(n, buscado)).slice(0, 2) : []
+
+  function escribir(valor: string) {
+    setTexto(valor)
+    // Escribir lo siguiente es seguir de largo: la tira de la tienda y la
+    // confirmación ya no hacen falta.
+    setRecien(null)
+    setListo(null)
+  }
 
   async function enviar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault()
     if (pendiente) return
 
     const formData = new FormData(evento.currentTarget)
+    const nombre = String(formData.get('producto') ?? '').trim()
     setPendiente(true)
     setAviso(null)
+    setRecien(null)
+    setListo(null)
     try {
       const resultado = await agregarItem({}, formData)
-      if (resultado.error) setAviso({ texto: resultado.error })
-      else setTexto('')
+      if (resultado.error) {
+        setAviso({ texto: resultado.error })
+      } else {
+        setTexto('')
+        if (!tiendaElegida && resultado.itemId && tiendas.length > 0) {
+          setRecien({ id: resultado.itemId, nombre })
+        }
+      }
     } catch (e) {
       setAviso(avisoDeFallo(e, 'agregar'))
     } finally {
       setPendiente(false)
+    }
+  }
+
+  async function mandarA(tienda: TiendaVista) {
+    if (!recien || moviendo) return
+    setMoviendo(true)
+    setAviso(null)
+    try {
+      const resultado = await moverDeTienda(recien.id, tienda.id)
+      if (resultado.error) {
+        setAviso({ texto: resultado.error })
+      } else {
+        setListo(`${recien.nombre} pasó a ${tienda.nombre}.`)
+        setRecien(null)
+      }
+    } catch (e) {
+      setAviso(avisoDeFallo(e, 'mover'))
+    } finally {
+      setMoviendo(false)
     }
   }
 
@@ -68,10 +136,44 @@ export function AgregarItem() {
         </div>
       ) : null}
 
+      {/* Avisa, no frena: «Leche» y «Leche deslactosada» pueden ir los dos. */}
+      <p aria-live="polite" className="text-tinta-suave text-sm empty:hidden">
+        {parecidos.length > 0 ? `Ya está en la lista: ${parecidos.join(', ')}` : null}
+      </p>
+
+      {recien ? (
+        <div className="flex flex-col gap-1">
+          <p className="text-tinta-suave text-sm">
+            <span className="text-tinta font-semibold">{recien.nombre}</span> quedó en cualquier
+            tienda. ¿Dónde se compra?
+          </p>
+          <Carrusel etiqueta={`Dónde se compra ${recien.nombre}`} sangra>
+            {tiendas.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => mandarA(t)}
+                disabled={moviendo}
+                className={`${CHIP} ${CHIP_APAGADO} disabled:opacity-60`}
+              >
+                {t.nombre}
+              </button>
+            ))}
+          </Carrusel>
+        </div>
+      ) : null}
+
+      {listo ? (
+        <p role="status" className="text-ok text-sm">
+          {listo}
+        </p>
+      ) : null}
+
       <form onSubmit={enviar} className="flex gap-2">
         <label htmlFor="producto" className="sr-only">
           Qué hay que comprar
         </label>
+        {tiendaElegida ? <input type="hidden" name="tiendaId" value={tiendaElegida.id} /> : null}
         {/*
           El campo se llama `producto` y no `nombre` a propósito. Safari ignora
           el `autoComplete="off"` y clasifica el campo por heurística sobre el
@@ -84,8 +186,8 @@ export function AgregarItem() {
           name="producto"
           type="text"
           value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          placeholder="Agregar item…"
+          onChange={(e) => escribir(e.target.value)}
+          placeholder={tiendaElegida ? `Agregar a ${tiendaElegida.nombre}…` : 'Agregar item…'}
           autoComplete="off"
           maxLength={80}
           className="min-h-touch border-borde-control bg-superficie text-tinta

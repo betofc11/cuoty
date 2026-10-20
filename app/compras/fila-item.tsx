@@ -6,6 +6,7 @@ import { useRef, useState } from 'react'
 import type { ItemVista } from '@/lib/compras/consultas'
 
 import { marcarComprado } from './acciones'
+import { useEditarItem } from './editor-de-item'
 import { avisoDeFallo, type Aviso } from './fallo'
 
 /**
@@ -87,12 +88,34 @@ function useMarcar(item: ItemVista) {
 const FOCO = 'focus-visible:outline-marca focus-visible:outline-2 focus-visible:-outline-offset-2'
 
 /*
-  «Editar» va en tinta-suave y no en la marca, aunque sea un enlace: se repite
+  «Editar» va en tinta-suave y no en la marca, aunque sea una acción: se repite
   en cada fila, y en terracota serían siete palabras de acción compitiendo con
   los productos, que son lo que se viene a leer. La acción principal de la
   fila es tocarla.
 */
 const EDITAR = `min-h-touch text-tinta-suave active:bg-superficie flex shrink-0 items-center px-4 text-base ${FOCO}`
+
+/**
+ * «Editar» abre la hoja de edición sin salir de la lista. Fuera de
+ * `EditorDeItems` (no debería pasar) cae al enlace de la página del item.
+ */
+function Editar({ item }: { item: ItemVista }) {
+  const editar = useEditarItem()
+  const nombre = <span className="sr-only"> {item.producto}</span>
+
+  if (!editar) {
+    return (
+      <Link href={`/compras/${item.id}`} className={EDITAR}>
+        Editar{nombre}
+      </Link>
+    )
+  }
+  return (
+    <button type="button" onClick={() => editar(item)} aria-haspopup="dialog" className={EDITAR}>
+      Editar{nombre}
+    </button>
+  )
+}
 
 /**
  * El círculo es decorativo: el control es la fila entera. Va en
@@ -188,9 +211,7 @@ export function FilaItem({ item }: { item: ItemVista }) {
           </span>
         </button>
 
-        <Link href={`/compras/${item.id}`} className={EDITAR}>
-          Editar<span className="sr-only"> {item.producto}</span>
-        </Link>
+        <Editar item={item} />
       </div>
       <AvisoDeFila aviso={aviso} />
     </li>
@@ -208,7 +229,7 @@ export function FilaItem({ item }: { item: ItemVista }) {
  * coincidía al hidratar una página guardada de otro día.
  *
  * Lo de hoy no lleva «Editar»: ese lugar es del nombre de quien lo marcó. Lo
- * de antes sí, porque el acordeón es el único camino a su detalle.
+ * de antes sí, porque el acordeón es el único camino para editarlo.
  */
 export function FilaComprada({
   item,
@@ -250,11 +271,7 @@ export function FilaComprada({
           ) : null}
         </button>
 
-        {editable ? (
-          <Link href={`/compras/${item.id}`} className={EDITAR}>
-            Editar<span className="sr-only"> {item.producto}</span>
-          </Link>
-        ) : null}
+        {editable ? <Editar item={item} /> : null}
       </div>
       <AvisoDeFila aviso={aviso} />
     </li>

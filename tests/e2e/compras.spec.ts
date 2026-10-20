@@ -83,11 +83,11 @@ test('sin señal, la fila avisa y la lista sigue en pie', async ({ page, context
   await context.setOffline(false)
 })
 
-test('«Editar» abre el detalle sin marcar el item', async ({ page }) => {
-  await page.getByRole('link', { name: 'Editar Leche Dos Pinos 2L' }).tap()
+test('«Editar» abre la hoja del item sin marcarlo ni salir de la lista', async ({ page }) => {
+  await page.getByRole('button', { name: 'Editar Leche Dos Pinos 2L' }).tap()
 
-  await expect(page).toHaveURL(`/compras/${IDS.leche}`)
-  await expect(titulo(page)).toHaveText('Leche Dos Pinos 2L')
+  await expect(page.getByRole('dialog', { name: 'Leche Dos Pinos 2L' })).toBeVisible()
+  await expect(page).toHaveURL('/compras')
   expect(await estadoDe(IDS.leche)).toBe('pending')
 })
 

@@ -107,8 +107,8 @@ Fase 1, hecha:
   Con nombre largo se corta el nombre, nunca la cantidad.
 - **Toda la fila marca** (`<button role="checkbox">`), optimista con estado propio
   y **no** con `useOptimistic` (ver «Una transición async congela las pestañas» en
-  las trampas). «Editar» va al final, con su palabra, y abre `/compras/[itemId]`.
-  Antes el toque grande abría el detalle, que es lo más raro en el súper.
+  las trampas). «Editar» va al final, con su palabra, y abre la hoja de edición
+  (fase 3). Antes el toque grande abría el detalle, que es lo más raro en el súper.
 - **Agrupada por tienda** (`lib/compras/grupos.ts`), por nombre y con la
   predeterminada al final como «En cualquier tienda». Revierte la lista plana de
   antes: agrupar «partía la lista» cuando las filas tenían cuatro renglones.
@@ -135,11 +135,28 @@ Fase 2, hecha (filtrar por la tienda donde estás):
   filtrar ya se llama «Etiquetas», y dos controles con el mismo nombre que hacen
   cosas distintas no se distinguen.
 
+Fase 3, hecha (editar sin salir de la lista):
+- **Una sola `<Hoja>` para toda la lista** (`app/compras/editor-de-item.tsx`). La
+  página envuelve los grupos en `<EditorDeItems>`, y el «Editar» de cada fila la
+  abre por contexto (`useEditarItem`). Guarda una copia del item al abrirse: un
+  refresco de Realtime cambia la fila de atrás pero no pisa lo que se escribe.
+- **Cada campo se guarda solo**, con «Guardando…», «Guardado» o el error al lado
+  de su etiqueta. Tienda y etiquetas, al tocar el chip; cantidad y nota, al salir
+  del campo, y también al cerrar la hoja con Esc o tocando el fondo. Sin
+  «Guardar cambios». Una acción por campo en `acciones.ts` (`moverDeTienda`,
+  `cambiarCantidad`, `cambiarNota`, `cambiarEtiquetas`), todas llamadas como
+  función y fuera de transiciones. Tienda y etiquetas se validan contra la casa.
+- **Borrar pide confirmación** («Sí, borrar» / «No, dejarlo»): en una hoja que se
+  usa a las carreras, un toque suelto no puede borrar algo que no vuelve.
+- **Las fotos siguen en `/compras/[itemId]`**, con un enlace desde la hoja. Esa
+  página todavía tiene el formulario viejo con «Guardar cambios»: queda para la
+  fase 4.
+- **Al anotar**: con una tienda elegida, lo nuevo cae ahí («Agregar a Walmart…»).
+  Si no, aparece la tira «¿Dónde se compra?», que se va sola al escribir lo
+  siguiente. Y mientras se escribe, «Ya está en la lista: …» si algo pendiente lo
+  contiene (desde tres letras, sin frenar el alta).
+
 Fases que faltan, con el usuario ya de acuerdo:
-3. **Editar en una `<Hoja>`** que guarda cada campo al tocarlo, con la tienda en
-   chips. Después de anotar, una tira «¿Dónde se compra?» de un toque (82 % de los
-   items de la casa real terminaban movidos a mano a una tienda). Aviso de
-   «Ya está en la lista» al escribir un duplicado.
 4. Encabezado, buscador (se va el de arriba) y una sola sección «Comprado».
 5. Más adelante, con datos: que `add_shopping_item` recuerde la última tienda de
    cada producto. Hoy casi no se repiten productos y no acertaría.
@@ -317,7 +334,8 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   cada pestaña desde cada pantalla y también **con una acción en vuelo**, que es
   como se rompió, y **un rato después de cargar Compras**, que es como se rompió
   la segunda vez. Lo de Compras (marcar, deshacer, fallos, sin señal) está en
-  `compras.spec.ts`, y los filtros por tienda y etiqueta en `filtros.spec.ts`.
+  `compras.spec.ts`, los filtros por tienda y etiqueta en `filtros.spec.ts`, y la
+  hoja de edición, la tira de la tienda y el aviso de duplicado en `edicion.spec.ts`.
 - **Para cortar los servidores de prueba, buscá por nombre de proceso**
   (`ps -eo pid,comm`, el que se llama `next-server`), nunca con `pkill -f`: el
   patrón también aparece en la línea de comando de tu propia terminal y te la
@@ -490,6 +508,9 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   hasta recargar: `unstable_isUnrecognizedActionError`), y cualquier respuesta que
   no sea de Next. `navigator.onLine` solo es confiable cuando dice `false`: en iOS
   da `true` con señal débil. Ver `app/compras/fallo.ts`.
+- **`Intl` con `month: 'short'` abrevia setiembre como «sept»**, y cada motor a su
+  manera. `fechaCorta` (`lib/fechas.ts`) arma la abreviatura a mano desde `MESES`:
+  «1 set».
 - **Los `timestamptz` de PostgREST no tienen largo fijo**: Postgres recorta los ceros
   de los milisegundos («…12+00:00» al lado de «…12.5+00:00»). Para ordenar, usá
   `Date.parse`, no comparación de texto.
@@ -530,7 +551,7 @@ El plan de la revisión de diseño (octubre de 2026) está completo en sus cuatr
 fases: contraste y color, el marco en el iPhone, jerarquía y textos, e identidad.
 Lo que salió de ahí está en «Diseños» y en «El marco».
 
-El rediseño de Compras va por la fase 2 de cinco: ver «Compras» en «Diseños».
+El rediseño de Compras va por la fase 3 de cinco: ver «Compras» en «Diseños».
 
 Pendiente:
 - **Foto de perfil.** `profiles.avatar_url` existe y Google la llena, pero el shell
