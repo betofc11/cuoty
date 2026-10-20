@@ -128,6 +128,10 @@ test('las fotos siguen en la página del item', async ({ page }) => {
 
   await expect(page).toHaveURL(`/compras/${IDS.leche}`)
   await expect(titulo(page)).toHaveText('Leche Dos Pinos 2L')
+  // Desde la fase 4 es solo la página de las fotos: lo demás se edita en la hoja.
+  await expect(page.getByRole('button', { name: 'Agregar foto' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Guardar cambios' })).toHaveCount(0)
+  await expect(page.getByRole('combobox')).toHaveCount(0)
 })
 
 test('después de anotar, un toque manda el item a su tienda', async ({ page }) => {

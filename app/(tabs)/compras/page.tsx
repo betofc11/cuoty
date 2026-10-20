@@ -8,6 +8,7 @@ import {
   leerFiltros,
   vistaDeCompras,
   type Filtros,
+  type ItemVista,
   type TagVista,
   type TiendaConteo,
 } from '@/lib/compras/consultas'
@@ -17,7 +18,6 @@ import { fechaCorta } from '@/lib/fechas'
 
 import { archivarComprados } from '@/app/compras/acciones'
 import { AgregarItem } from '@/app/compras/agregar'
-import { Buscador } from '@/app/compras/buscador'
 import { Carrusel } from '@/app/compras/carrusel'
 import { CHIP, CHIP_APAGADO, CHIP_ELEGIDO } from '@/app/compras/chips'
 import { EditorDeItems } from '@/app/compras/editor-de-item'
@@ -25,7 +25,7 @@ import { FilaComprada, FilaItem } from '@/app/compras/fila-item'
 import { FiltroEtiquetas } from '@/app/compras/filtro-etiquetas'
 import { RealtimeCompras } from '@/app/compras/realtime'
 
-type Params = { tienda?: string; tag?: string; q?: string }
+type Params = { tienda?: string; tag?: string }
 
 type Cambios = Partial<Filtros>
 
@@ -35,73 +35,181 @@ function enlace(filtros: Filtros, cambios: Cambios): string {
 
   const tienda = cambios.tienda !== undefined ? cambios.tienda : filtros.tienda
   const tag = cambios.tag !== undefined ? cambios.tag : filtros.tag
-  const q = cambios.q !== undefined ? cambios.q : filtros.q
 
   if (tienda) params.set('tienda', tienda)
   if (tag) params.set('tag', tag)
-  if (q) params.set('q', q)
 
   const query = params.toString()
   return query ? `/compras?${query}` : '/compras'
 }
 
-/**
- * Un tramo de la lista con su título: el de cada tienda y el de lo comprado
- * hoy. El número se lee en la pantalla; el lector de pantalla oye la frase.
- */
-function Grupo({
+/** El título de un tramo de la lista. El número se lee; el lector de pantalla oye la frase. */
+function TituloDeGrupo({
   id,
   titulo,
   cuenta,
   cuentaLarga,
-  children,
 }: {
   id: string
   titulo: string
   cuenta: number
   cuentaLarga: string
-  children: React.ReactNode
 }) {
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-2">
-      <h2
-        id={id}
-        className="text-tinta flex items-baseline justify-between gap-3 px-1 text-base font-semibold"
-      >
-        {titulo}
-        <span aria-hidden="true" className="text-tinta-suave text-sm font-normal">
-          {cuenta}
-        </span>
-        <span className="sr-only">, {cuentaLarga}</span>
-      </h2>
-      {/* `overflow-hidden` para que el fondo al presionar una fila respete
-          las esquinas de la tarjeta. */}
-      <ul className="border-borde bg-superficie-alta divide-borde-suave divide-y overflow-hidden rounded-2xl border">
-        {children}
-      </ul>
-    </section>
+    <h2
+      id={id}
+      className="text-tinta flex items-baseline justify-between gap-3 px-1 text-base font-semibold"
+    >
+      {titulo}
+      <span aria-hidden="true" className="text-tinta-suave text-sm font-normal">
+        {cuenta}
+      </span>
+      <span className="sr-only">, {cuentaLarga}</span>
+    </h2>
   )
 }
 
+/*
+  `overflow-hidden` para que el fondo al presionar una fila respete las
+  esquinas de la tarjeta.
+*/
+const TARJETA =
+  'border-borde bg-superficie-alta divide-borde-suave divide-y overflow-hidden rounded-2xl border'
+
 /** El grupo de una tienda. La predeterminada se nombra por lo que significa. */
 function GrupoDeTienda({ grupo }: { grupo: GrupoTienda }) {
+  const id = `grupo-${grupo.tienda.id}`
   return (
-    <Grupo
-      id={`grupo-${grupo.tienda.id}`}
-      titulo={grupo.tienda.esPredeterminada ? 'En cualquier tienda' : grupo.tienda.nombre}
-      cuenta={grupo.items.length}
-      cuentaLarga={pendientes(grupo.items.length)}
-    >
-      {grupo.items.map((item) => (
-        <FilaItem key={item.id} item={item} />
-      ))}
-    </Grupo>
+    <section aria-labelledby={id} className="flex flex-col gap-2">
+      <TituloDeGrupo
+        id={id}
+        titulo={grupo.tienda.esPredeterminada ? 'En cualquier tienda' : grupo.tienda.nombre}
+        cuenta={grupo.items.length}
+        cuentaLarga={pendientes(grupo.items.length)}
+      />
+      <ul className={TARJETA}>
+        {grupo.items.map((item) => (
+          <FilaItem key={item.id} item={item} />
+        ))}
+      </ul>
+    </section>
   )
 }
 
 /** «1 pendiente», «3 pendientes». */
 function pendientes(n: number): string {
   return `${n} ${n === 1 ? 'pendiente' : 'pendientes'}`
+}
+
+/** «1 item», «3 items». */
+function items(n: number): string {
+  return `${n} ${n === 1 ? 'item' : 'items'}`
+}
+
+/** El `<summary>` de lo plegado: «En otras tiendas», «Antes de hoy». */
+function Plegado({
+  texto,
+  cuenta,
+  cuentaLarga,
+  className = '',
+}: {
+  texto: string
+  cuenta: number
+  cuentaLarga: string
+  className?: string
+}) {
+  return (
+    <summary
+      className={`min-h-touch text-tinta flex cursor-pointer items-center justify-between gap-3 px-4 text-base
+                  font-semibold ${className}`}
+    >
+      {texto}
+      <span className="text-tinta-suave flex items-center gap-3 font-normal">
+        <span aria-hidden="true" className="text-sm">
+          {cuenta}
+        </span>
+        <span className="sr-only">, {cuentaLarga}</span>
+        <span aria-hidden="true" className="transition group-open:rotate-180">
+          ▾
+        </span>
+      </span>
+    </summary>
+  )
+}
+
+/**
+ * Lo comprado, en una sola sección. Antes vivía en tres lugares: «Comprado
+ * hoy», el acordeón «Ver artículos comprados (N)» al pie, y el botón «Quitar
+ * los comprados (N)», que contaba otra cosa que el acordeón.
+ *
+ * Lo de hoy queda abierto, lo último primero: si al tocar la casilla el item
+ * desapareciera, deshacer un toque errado obligaría a abrir lo plegado. Lleva
+ * quién lo marcó, que con dos personas en el súper evita comprarlo dos veces.
+ * Lo de antes va plegado, con su fecha y con «Editar».
+ *
+ * «Quitar los comprados» archiva justo lo que la sección muestra: los ids van
+ * en el formulario. Sigue como `<form action>` a propósito: es en bloque y uno
+ * espera a que termine.
+ */
+function SeccionComprado({ hoy, antes }: { hoy: ItemVista[]; antes: ItemVista[] }) {
+  const total = hoy.length + antes.length
+  return (
+    <section aria-labelledby="grupo-comprado" className="flex flex-col gap-2">
+      <TituloDeGrupo
+        id="grupo-comprado"
+        titulo="Comprado"
+        cuenta={total}
+        cuentaLarga={items(total)}
+      />
+      <div className="flex flex-col gap-3">
+        {hoy.length > 0 ? (
+          <ul className={TARJETA}>
+            {hoy.map((item) => (
+              <FilaComprada
+                key={item.id}
+                item={item}
+                marca={item.compradoPor ? { previo: ', lo marcó ', texto: item.compradoPor } : null}
+              />
+            ))}
+          </ul>
+        ) : null}
+
+        {antes.length > 0 ? (
+          <details className="border-borde bg-superficie-alta group rounded-2xl border">
+            <Plegado texto="Antes de hoy" cuenta={antes.length} cuentaLarga={items(antes.length)} />
+            {/* El recorte va en la lista y no en el `<details>`: ahí cortaba
+                el anillo de foco del `<summary>`. Sin recorte, la última fila
+                presionada pintaba esquinas cuadradas sobre la tarjeta. */}
+            <ul className="border-borde-suave divide-borde-suave divide-y overflow-hidden rounded-b-2xl border-t">
+              {antes.map((item) => (
+                <FilaComprada
+                  key={item.id}
+                  item={item}
+                  editable
+                  // La fecha relativa sale del servidor: calculada en el
+                  // cliente, una página guardada de otro día no hidrataba.
+                  marca={
+                    item.compradoEl
+                      ? { previo: ', comprado ', texto: fechaCorta(item.compradoEl) }
+                      : null
+                  }
+                />
+              ))}
+            </ul>
+          </details>
+        ) : null}
+
+        <form action={archivarComprados}>
+          {[...hoy, ...antes].map((item) => (
+            <input key={item.id} type="hidden" name="itemId" value={item.id} />
+          ))}
+          <Button type="submit" variante="secundario">
+            Quitar los comprados
+          </Button>
+        </form>
+      </div>
+    </section>
+  )
 }
 
 const BOTON_SECUNDARIO =
@@ -181,7 +289,6 @@ export default async function ComprasPage({
   const esAdmin = activa.rol === 'admin'
   const elegida: TiendaConteo | null = vista.tiendaElegida
   const tagPuesta = vista.tags.find((t) => t.id === filtros.tag) ?? null
-  const hayFiltro = Boolean(elegida || tagPuesta || filtros.q)
 
   // «Estoy en Walmart»: lo de Walmart y lo de cualquier tienda a la vista, lo
   // de las demás tiendas plegado. Ver `lib/compras/grupos.ts`.
@@ -209,71 +316,54 @@ export default async function ComprasPage({
       <div className="flex flex-col gap-4">
         <OfflineBanner />
 
-        <header className="flex flex-col gap-1">
-          <h1 className="text-tinta text-xl font-semibold">Lista de compras</h1>
-          <p className="text-tinta-suave text-base">
-            {vista.totalPendientes === 0
-              ? 'No falta nada por comprar.'
-              : vista.totalPendientes === 1
-                ? 'Falta 1 cosa.'
-                : `Faltan ${vista.totalPendientes} cosas.`}
-          </p>
-        </header>
+        {/* Solo el título. «Faltan 7 cosas» ocupaba una línea propia para decir
+            lo que ya dicen el chip «Todo» y el número de cada grupo, y el
+            buscador se fue: con filas de una línea agrupadas por tienda,
+            recorrer la lista es más rápido que escribir. */}
+        <h1 className="text-tinta text-xl font-semibold">Lista de compras</h1>
 
-        {!vista.listaVacia ? (
-          <div className="flex flex-col gap-3">
-            <Buscador inicial={filtros.q} />
-
-            {/* Las tiendas a la vista, en un toque: es lo que se elige al
-                entrar al súper. Antes vivían detrás de un embudo, en un
-                panel, a dos toques y dos navegaciones. Las etiquetas quedan
-                a la derecha, fijas, porque se usan mucho menos. */}
-            {hayFiltros ? (
-              <div className="flex items-center gap-2">
-                {hayTiendas ? (
-                  <Carrusel etiqueta="Filtrar por tienda" className="min-w-0 flex-1">
-                    <ChipTienda
-                      nombre="Todo"
-                      cuenta={vista.items.length}
-                      activo={!elegida}
-                      quitable={false}
-                      href={enlace(filtros, { tienda: '' })}
-                    />
-                    {vista.tiendas.map((t) => (
-                      <ChipTienda
-                        key={t.id}
-                        nombre={t.nombre}
-                        cuenta={t.pendientes}
-                        activo={t.id === elegida?.id}
-                        quitable
-                        href={enlace(filtros, { tienda: t.id === elegida?.id ? '' : t.id })}
-                      />
-                    ))}
-                  </Carrusel>
-                ) : null}
-
-                <div className="ml-auto flex shrink-0">
-                  {tagPuesta ? (
-                    <ChipEtiquetaPuesta tag={tagPuesta} href={enlace(filtros, { tag: '' })} />
-                  ) : vista.tags.length > 0 ? (
-                    <FiltroEtiquetas
-                      opciones={vista.tags.map((t) => ({
-                        id: t.id,
-                        nombre: t.nombre,
-                        pendientes: t.pendientes,
-                        href: enlace(filtros, { tag: t.id }),
-                      }))}
-                    />
-                  ) : null}
-                </div>
-              </div>
+        {/* Las tiendas a la vista, en un toque: es lo que se elige al entrar
+            al súper. Antes vivían detrás de un embudo, en un panel, a dos
+            toques y dos navegaciones. Las etiquetas quedan a la derecha,
+            fijas, porque se usan mucho menos. */}
+        {!vista.listaVacia && hayFiltros ? (
+          <div className="flex items-center gap-2">
+            {hayTiendas ? (
+              <Carrusel etiqueta="Filtrar por tienda" className="min-w-0 flex-1">
+                <ChipTienda
+                  nombre="Todo"
+                  cuenta={vista.items.length}
+                  activo={!elegida}
+                  quitable={false}
+                  href={enlace(filtros, { tienda: '' })}
+                />
+                {vista.tiendas.map((t) => (
+                  <ChipTienda
+                    key={t.id}
+                    nombre={t.nombre}
+                    cuenta={t.pendientes}
+                    activo={t.id === elegida?.id}
+                    quitable
+                    href={enlace(filtros, { tienda: t.id === elegida?.id ? '' : t.id })}
+                  />
+                ))}
+              </Carrusel>
             ) : null}
 
-            {hayFiltro && visibles < vista.totalPendientes ? (
-              <p className="text-tinta-suave text-sm">
-                {visibles} de {pendientes(vista.totalPendientes)}
-              </p>
-            ) : null}
+            <div className="ml-auto flex shrink-0">
+              {tagPuesta ? (
+                <ChipEtiquetaPuesta tag={tagPuesta} href={enlace(filtros, { tag: '' })} />
+              ) : vista.tags.length > 0 ? (
+                <FiltroEtiquetas
+                  opciones={vista.tags.map((t) => ({
+                    id: t.id,
+                    nombre: t.nombre,
+                    pendientes: t.pendientes,
+                    href: enlace(filtros, { tag: t.id }),
+                  }))}
+                />
+              ) : null}
+            </div>
           </div>
         ) : null}
 
@@ -289,8 +379,8 @@ export default async function ComprasPage({
         ) : null}
 
         {/* Tres vacíos distintos, y mandan a lugares distintos: ya está todo
-            comprado / la búsqueda o la etiqueta no encontraron nada / en esta
-            tienda no queda nada, pero en otras sí. Decirle «quitá un filtro»
+            comprado / la etiqueta no encontró nada / en esta tienda no queda
+            nada, pero en otras sí. Decirle «quitá un filtro»
             a quien no le sirve quitarlo es peor que no decir nada. Hablan de
             lo pendiente: lo comprado que pase el filtro sale igual abajo. */}
         {!vista.listaVacia && visibles === 0 ? (
@@ -303,7 +393,7 @@ export default async function ComprasPage({
                 </p>
               ) : vista.compradosAntes.length > 0 ? (
                 <p className="text-tinta-suave text-base">
-                  Lo que compraron quedó abajo, en «Ver artículos comprados».
+                  Lo que compraron quedó abajo, en «Comprado».
                 </p>
               ) : null}
             </section>
@@ -318,14 +408,10 @@ export default async function ComprasPage({
             </section>
           ) : (
             <section className="border-borde-suave flex flex-col gap-3 rounded-2xl border border-dashed p-5">
-              <h2 className="text-tinta text-base font-semibold">
-                {filtros.q
-                  ? `Nada pendiente que coincida con «${filtros.q}»`
-                  : 'Nada pendiente con esos filtros'}
-              </h2>
+              <h2 className="text-tinta text-base font-semibold">Nada pendiente con esos filtros</h2>
               <p className="text-tinta-suave text-base">Probá quitando algún filtro.</p>
               <Link
-                href={enlace(filtros, { tienda: '', tag: '', q: '' })}
+                href={enlace(filtros, { tienda: '', tag: '' })}
                 className="min-h-touch border-borde bg-superficie-alta text-tinta flex items-center
                            justify-center rounded-2xl border px-4 text-base font-semibold"
               >
@@ -349,21 +435,12 @@ export default async function ComprasPage({
               plegado, por si lo que falta en otra también lo hay acá. */}
           {otras.length > 0 ? (
             <details className="group">
-              <summary
-                className="min-h-touch border-borde bg-superficie-alta text-tinta flex cursor-pointer items-center
-                           justify-between gap-3 rounded-2xl border px-4 text-base font-semibold"
-              >
-                En otras tiendas
-                <span className="text-tinta-suave flex items-center gap-3 font-normal">
-                  <span aria-hidden="true" className="text-sm">
-                    {enOtras}
-                  </span>
-                  <span className="sr-only">, {pendientes(enOtras)}</span>
-                  <span aria-hidden="true" className="transition group-open:rotate-180">
-                    ▾
-                  </span>
-                </span>
-              </summary>
+              <Plegado
+                texto="En otras tiendas"
+                cuenta={enOtras}
+                cuentaLarga={pendientes(enOtras)}
+                className="border-borde bg-superficie-alta rounded-2xl border"
+              />
               <div className="flex flex-col gap-4 pt-4">
                 {otras.map((g) => (
                   <GrupoDeTienda key={g.tienda.id} grupo={g} />
@@ -372,71 +449,10 @@ export default async function ComprasPage({
             </details>
           ) : null}
 
-          {/* Lo marcado hoy no se va de la pantalla: si al tocar la casilla el
-              item desapareciera, deshacer un toque errado obligaría a abrir el
-              acordeón. Lo último que se marcó va primero. */}
-          {vista.compradosHoy.length > 0 ? (
-            <Grupo
-              id="grupo-comprado-hoy"
-              titulo="Comprado hoy"
-              cuenta={vista.compradosHoy.length}
-              cuentaLarga={`${vista.compradosHoy.length} ${
-                vista.compradosHoy.length === 1 ? 'item' : 'items'
-              }`}
-            >
-              {vista.compradosHoy.map((item) => (
-                <FilaComprada
-                  key={item.id}
-                  item={item}
-                  marca={item.compradoPor ? { previo: ', lo marcó ', texto: item.compradoPor } : null}
-                />
-              ))}
-            </Grupo>
-          ) : null}
-
-          {vista.compradosAntes.length > 0 ? (
-            <details className="border-borde bg-superficie-alta group rounded-2xl border">
-              <summary className="min-h-touch text-tinta flex cursor-pointer items-center justify-between px-4 text-base font-semibold">
-                Ver artículos comprados ({vista.compradosAntes.length})
-                <span
-                  aria-hidden="true"
-                  className="text-tinta-suave transition group-open:rotate-180"
-                >
-                  ▾
-                </span>
-              </summary>
-              {/* El recorte va en la lista y no en el `<details>`: ahí cortaba
-                  el anillo de foco del `<summary>`. Sin recorte, la última fila
-                  presionada pintaba esquinas cuadradas sobre la tarjeta. */}
-              <ul className="border-borde-suave divide-borde-suave divide-y overflow-hidden rounded-b-2xl border-t">
-                {vista.compradosAntes.map((item) => (
-                  <FilaComprada
-                    key={item.id}
-                    item={item}
-                    editable
-                    // La fecha relativa sale del servidor: calculada en el
-                    // cliente, una página guardada de otro día no hidrataba.
-                    marca={
-                      item.compradoEl
-                        ? { previo: ', comprado ', texto: fechaCorta(item.compradoEl) }
-                        : null
-                    }
-                  />
-                ))}
-              </ul>
-            </details>
+          {vista.compradosHoy.length + vista.compradosAntes.length > 0 ? (
+            <SeccionComprado hoy={vista.compradosHoy} antes={vista.compradosAntes} />
           ) : null}
         </EditorDeItems>
-
-        {/* Archiva TODO lo comprado de la casa, no solo lo que se está
-            viendo: por eso el número es el total y no el de la vista. */}
-        {vista.totalComprados > 0 ? (
-          <form action={archivarComprados}>
-            <Button type="submit" variante="secundario">
-              Quitar los comprados ({vista.totalComprados})
-            </Button>
-          </form>
-        ) : null}
 
         {/* «Editar» y no solo «Etiquetas»: arriba, el botón «Etiquetas» filtra,
             y dos controles con el mismo nombre que hacen cosas distintas no

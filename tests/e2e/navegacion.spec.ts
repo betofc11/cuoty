@@ -102,13 +102,3 @@ test('las pestañas responden aunque agregar un item siga esperando al servidor'
     )
     .toBe(true)
 })
-
-test('las pestañas responden con una búsqueda escrita en Compras', async ({ page }) => {
-  await page.goto('/compras')
-  await page.getByRole('searchbox', { name: 'Buscar en la lista' }).fill('pan')
-  await expect(page).toHaveURL(/q=pan/)
-
-  await pestana(page, 'Gastos').tap()
-
-  await expect(titulo(page)).toHaveText('Gastos')
-})

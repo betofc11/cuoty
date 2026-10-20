@@ -55,7 +55,8 @@ test('elegir Walmart muestra lo de Walmart y lo de cualquier tienda', async ({ p
   await expect(grupo(page, 'Walmart').getByRole('checkbox')).toHaveCount(2)
   await expect(grupo(page, 'En cualquier tienda').getByRole('checkbox')).toHaveCount(1)
   await expect(grupo(page, 'Automercado')).toHaveCount(0)
-  await expect(page.getByText('3 de 4 pendientes')).toBeVisible()
+  // «Todo» sigue diciendo cuánto falta en total.
+  await expect(chip(page, 'Todo', ' 4 pendientes')).toBeVisible()
 
   // Lo de las otras tiendas no se esconde: queda plegado.
   await otrasTiendas(page).tap()
@@ -84,7 +85,7 @@ test('la etiqueta se elige en una hoja y se quita con su ×', async ({ page }) =
 
   await expect(hoja).toBeHidden()
   await expect(page).toHaveURL(/tag=/)
-  // Solo Pinol: la etiqueta también filtra «Comprado hoy», y el tomate no la lleva.
+  // Solo Pinol: la etiqueta también filtra «Comprado», y el tomate no la lleva.
   await expect(page.getByRole('checkbox')).toHaveCount(1)
   await expect(page.getByRole('checkbox', { name: /Pinol/ })).toBeVisible()
 
@@ -102,7 +103,7 @@ test('si en la tienda elegida ya no queda nada, lo dice y deja ver lo de las otr
     await grupo(page, nombre.source.startsWith('Pan') ? 'En cualquier tienda' : 'Walmart')
       .getByRole('checkbox', { name: nombre })
       .tap()
-    await expect(page.getByRole('region', { name: /^Comprado hoy/ }).getByRole('checkbox', { name: nombre })).toBeVisible()
+    await expect(page.getByRole('region', { name: /^Comprado/ }).getByRole('checkbox', { name: nombre })).toBeVisible()
   }
 
   await expect(page.getByRole('heading', { name: 'Nada pendiente en Walmart' })).toBeVisible()
