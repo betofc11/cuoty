@@ -442,9 +442,9 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   en el log es eso, no un error). «Quitar los comprados» sigue como `<form action>`
   a propósito: es en bloque y uno espera a que termine.
 - **`next dev` 16.3 agrega un bloque de reglas al final de CLAUDE.md** (el de
-  «nextjs-agent-rules», entre dos comentarios HTML) cada vez que arranca. No es
-  nuestro: no lo commitees sin que el usuario decida. Se apaga con
-  `agentRules: false` en `next.config.ts`. **Nunca escribas acá el comentario de
+  «nextjs-agent-rules», entre dos comentarios HTML) cada vez que arranca. Está
+  apagado con `agentRules: false` en `next.config.ts`, a pedido del usuario: no lo
+  saqués. Si alguna vez vuelve a aparecer, **nunca escribas acá el comentario de
   apertura literal:** `next dev` busca la primera aparición y reemplaza desde ahí
   hasta el cierre, y se llevaría todo lo que haya en el medio. Y si cortás `next dev` a mitad de una compilación,
   `.next/dev/types/validator.ts` puede quedar a medio escribir y el próximo
