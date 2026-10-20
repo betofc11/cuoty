@@ -52,8 +52,8 @@ export default async function GastosPage({
             {!cerrado ? (
               <Link
                 href={`/gastos/nuevo?mes=${claveDeMes(vista.periodo.mes)}`}
-                className="min-h-touch bg-crc flex items-center justify-center rounded-2xl
-                           px-5 text-base font-semibold text-white"
+                className="min-h-touch bg-marca flex items-center justify-center rounded-2xl
+                           px-5 text-base font-semibold text-sobre-relleno"
               >
                 Agregar gasto
               </Link>
@@ -110,9 +110,9 @@ export default async function GastosPage({
         {vista.arrastres.map((a) => (
           <section
             key={a.periodoId}
-            className="border-crc/30 bg-crc-tenue/40 flex flex-col gap-2 rounded-2xl border p-4"
+            className="border-borde bg-superficie flex flex-col gap-2 rounded-2xl border p-4"
           >
-            <span className="text-crc text-xs font-semibold tracking-wide uppercase">
+            <span className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
               Arrastre
             </span>
             <div className="flex items-start justify-between gap-3">
@@ -165,7 +165,7 @@ export default async function GastosPage({
               {esAdmin && !cerrado ? (
                 <Link
                   href={`/gastos/porcentajes/${lista.id}`}
-                  className="min-h-touch text-crc flex items-center px-2 text-base font-semibold"
+                  className="min-h-touch text-marca flex items-center px-2 text-base font-semibold"
                 >
                   Editar %
                 </Link>

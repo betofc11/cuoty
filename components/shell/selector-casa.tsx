@@ -198,13 +198,13 @@ export function SelectorCasa({ activa, casas }: { activa: Casa; casas: Casa[] })
             <div className="border-borde flex flex-col border-t">
               <Link
                 href="/onboarding/unirme"
-                className="min-h-touch text-crc active:bg-superficie flex items-center px-4 text-base font-semibold"
+                className="min-h-touch text-marca active:bg-superficie flex items-center px-4 text-base font-semibold"
               >
                 Unirme a otra casa
               </Link>
               <Link
                 href="/onboarding/crear"
-                className="min-h-touch text-crc active:bg-superficie flex items-center px-4 text-base font-semibold"
+                className="min-h-touch text-marca active:bg-superficie flex items-center px-4 text-base font-semibold"
               >
                 Crear casa
               </Link>

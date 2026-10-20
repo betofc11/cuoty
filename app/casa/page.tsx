@@ -97,7 +97,7 @@ export default async function CasaPage() {
                 </span>
                 <span
                   className={`shrink-0 rounded-full px-3 py-1 text-sm font-medium ${
-                    m.role === 'admin' ? 'bg-crc-tenue text-crc' : 'text-tinta-suave'
+                    m.role === 'admin' ? 'bg-borde-suave text-tinta' : 'text-tinta-suave'
                   }`}
                 >
                   {m.role === 'admin' ? 'Admin' : 'Miembro'}

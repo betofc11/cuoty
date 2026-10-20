@@ -30,8 +30,8 @@ export default function manifest(): MetadataRoute.Manifest {
 
     // `background_color` es el splash mientras carga: tiene que ser el mismo
     // `--fondo` del body o se ve un parpadeo de color al abrir.
-    background_color: '#efe9e1',
-    theme_color: '#efe9e1',
+    background_color: '#efede9',
+    theme_color: '#efede9',
 
     icons: [
       { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

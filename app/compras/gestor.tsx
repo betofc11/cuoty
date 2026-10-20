@@ -93,15 +93,15 @@ export function Gestor({
           placeholder={placeholder}
           autoComplete="off"
           maxLength={maxLength}
-          className="min-h-touch border-borde bg-superficie-alta text-tinta
-                     placeholder:text-tinta-suave focus:border-crc min-w-0 flex-1
+          className="min-h-touch border-borde-control bg-superficie-alta text-tinta
+                     placeholder:text-tinta-suave focus:border-marca focus:ring-marca focus:ring-1 min-w-0 flex-1
                      rounded-2xl border px-4 text-base outline-none"
         />
         <button
           type="submit"
           disabled={creando || texto.trim().length === 0}
-          className="min-h-touch bg-crc flex shrink-0 items-center justify-center rounded-2xl
-                     px-5 text-base font-semibold text-white disabled:opacity-60"
+          className="min-h-touch bg-marca flex shrink-0 items-center justify-center rounded-2xl
+                     px-5 text-base font-semibold text-sobre-relleno disabled:opacity-60"
         >
           {creando ? 'Agregando…' : 'Agregar'}
         </button>

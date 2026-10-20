@@ -131,7 +131,9 @@ function ChipTienda({
               tienda.pendientes === 1 ? 'pendiente' : 'pendientes'
             }`
       }
-      className={`${CHIP} ${activo ? 'border-crc bg-crc text-white' : CHIP_APAGADO}`}
+      // Seleccionada va en tinta, no en la marca: la marca es para las acciones.
+      // La etiqueta activa lleva su tono; la tienda, como su badge, va en neutro.
+      className={`${CHIP} ${activo ? 'border-tinta bg-tinta text-fondo' : CHIP_APAGADO}`}
     >
       {tienda.nombre}
       <span
@@ -238,7 +240,7 @@ export default async function ComprasPage({
                     aria-expanded={abierto}
                     aria-controls="panel-filtros"
                     aria-label={abierto ? 'Cerrar los filtros' : 'Abrir los filtros'}
-                    className={`border-crc bg-superficie-alta text-crc ${
+                    className={`border-marca bg-superficie-alta text-marca ${
                       abierto ? CHIP : `${CHIP_BASE} ${AREA_CUADRADA} w-9 justify-center`
                     }`}
                   >
@@ -297,14 +299,14 @@ export default async function ComprasPage({
                 className="flex flex-col gap-3 rounded-2xl px-4 py-3"
                 /*
                   El tinte se mezcla contra la superficie en vez de usar
-                  `--crc-tenue`: ese token en claro (#f6e7de) queda a tres
-                  puntos del fondo de la página (#efe9e1) y el panel parecía
-                  flotar, sin pertenecer a «Filtros». Mezclando el terracota
-                  al 12% el tinte se nota igual en los dos temas, porque sigue
-                  a la superficie de cada uno.
+                  `--marca-tenue`: con el fondo crema de antes ese token quedaba
+                  a tres puntos de la página y el panel parecía flotar, sin
+                  pertenecer a «Filtros». Mezclando el terracota al 12% el
+                  tinte sigue a la superficie de cada tema, y el embudo en
+                  marca encima pasa 4,5:1 en los dos (`npm run contraste`).
                 */
                 style={{
-                  backgroundColor: 'color-mix(in oklab, var(--crc) 12%, var(--superficie))',
+                  backgroundColor: 'color-mix(in oklab, var(--marca) 12%, var(--superficie))',
                 }}
               >
                 {vista.tiendas.length > 0 ? (

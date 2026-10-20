@@ -56,8 +56,8 @@ export default async function RecurrentesPage() {
           </p>
           <Link
             href="/gastos/nuevo"
-            className="min-h-touch bg-crc flex items-center justify-center rounded-2xl px-5
-                       text-base font-semibold text-white"
+            className="min-h-touch bg-marca flex items-center justify-center rounded-2xl px-5
+                       text-base font-semibold text-sobre-relleno"
           >
             Agregar gasto
           </Link>

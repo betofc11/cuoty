@@ -100,7 +100,7 @@ export default async function SaldoDeMiembroPage({
                 </span>
                 <span
                   className={`shrink-0 text-base font-semibold ${
-                    mov.reduce ? 'text-ok' : mov.monto.currency === 'CRC' ? 'text-crc' : 'text-usd'
+                    mov.reduce ? 'text-ok' : 'text-tinta'
                   }`}
                 >
                   {mov.reduce ? '+' : ''}
@@ -121,8 +121,8 @@ export default async function SaldoDeMiembroPage({
       {esAdmin && !alDia ? (
         <Link
           href={`/saldos/${detalle.membershipId}/abonar`}
-          className="min-h-touch bg-crc flex items-center justify-center rounded-2xl px-5
-                     text-base font-semibold text-white"
+          className="min-h-touch bg-marca flex items-center justify-center rounded-2xl px-5
+                     text-base font-semibold text-sobre-relleno"
         >
           Registrar {detalle.movimientos.some((m) => m.clase === 'abono') ? 'otro ' : ''}abono
         </Link>

@@ -94,8 +94,8 @@ export default async function SaldosPage() {
                   {esAdmin && !alDia ? (
                     <Link
                       href={`/saldos/${s.membershipId}/abonar`}
-                      className="min-h-touch bg-crc flex flex-1 items-center justify-center
-                                 rounded-2xl px-4 text-base font-semibold text-white"
+                      className="min-h-touch bg-marca flex flex-1 items-center justify-center
+                                 rounded-2xl px-4 text-base font-semibold text-sobre-relleno"
                     >
                       Registrar abono
                     </Link>

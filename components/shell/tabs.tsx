@@ -41,7 +41,7 @@ export function Tabs() {
             href={tab.href}
             aria-current={activo ? 'page' : undefined}
             className={`min-h-touch flex flex-col items-center justify-center gap-1 py-2
-                        text-xs font-medium ${activo ? 'text-crc' : 'text-tinta-suave'}`}
+                        text-xs font-medium ${activo ? 'text-marca' : 'text-tinta-suave'}`}
           >
             <svg
               aria-hidden="true"

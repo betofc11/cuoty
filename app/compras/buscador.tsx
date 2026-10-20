@@ -85,8 +85,8 @@ export function Buscador({ inicial }: { inicial: string }) {
         value={texto}
         onChange={(e) => setTexto(e.target.value)}
         placeholder="Buscar en la lista"
-        className="min-h-touch border-borde bg-superficie-alta text-tinta
-                   placeholder:text-tinta-suave focus:border-crc w-full rounded-2xl
+        className="min-h-touch border-borde-control bg-superficie-alta text-tinta
+                   placeholder:text-tinta-suave focus:border-marca focus:ring-marca focus:ring-1 w-full rounded-2xl
                    border pr-4 pl-12 text-base outline-none"
       />
     </div>

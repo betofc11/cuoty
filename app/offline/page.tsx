@@ -31,8 +31,8 @@ export default function OfflinePage() {
           poder hacer acá, y tiene que funcionar aunque el bundle no cargue. */}
       <a
         href="/compras"
-        className="min-h-touch bg-crc flex items-center justify-center rounded-2xl px-5
-                   text-base font-semibold text-white"
+        className="min-h-touch bg-marca flex items-center justify-center rounded-2xl px-5
+                   text-base font-semibold text-sobre-relleno"
       >
         Ver la lista de compras
       </a>

@@ -16,7 +16,7 @@ export function BotonTerminar({ plantillaId }: { plantillaId: string }) {
       <button
         type="submit"
         disabled={pendiente}
-        className="min-h-touch text-crc px-2 text-base font-semibold disabled:opacity-60"
+        className="min-h-touch text-marca px-2 text-base font-semibold disabled:opacity-60"
       >
         {pendiente ? 'Terminando…' : 'Terminar'}
       </button>

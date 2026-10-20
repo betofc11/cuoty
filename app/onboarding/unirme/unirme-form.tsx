@@ -33,8 +33,8 @@ export function UnirmeForm() {
           maxLength={12}
           autoFocus
           required
-          className="min-h-touch border-borde bg-superficie-alta text-tinta
-                     placeholder:text-tinta-suave focus:border-crc rounded-2xl border px-4
+          className="min-h-touch border-borde-control bg-superficie-alta text-tinta
+                     placeholder:text-tinta-suave focus:border-marca focus:ring-marca focus:ring-1 rounded-2xl border px-4
                      text-lg tracking-widest uppercase outline-none"
           hint="No importan mayúsculas ni el guion: «4f2x» también sirve."
         />

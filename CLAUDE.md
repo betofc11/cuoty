@@ -59,6 +59,13 @@ Romper cualquiera de estas es un bug, aunque el código compile.
   muestran su palabra al expandirse. Si vas a agregar un quinto, primero probá si
   cabe el texto.
 - Target táctil mínimo 48×48 (`min-h-touch`). Tipografía base 16px, no bajar.
+- **Contraste: todo texto pasa 4,5:1 y todo borde de campo 3:1, en los dos temas.**
+  `npm run contraste` lo verifica leyendo `app/globals.css`; si agregás un par de
+  colores nuevo a la UI, sumalo a `scripts/contraste.mjs`. Texto sobre un relleno
+  de color (`bg-marca`, `bg-peligro`, `bg-ok`) va en `text-sobre-relleno`, nunca en
+  `text-white`. `text-white` queda solo en los chips de casa, que tienen paleta fija.
+- Los campos (`input`, `select`, `textarea`) llevan `border-borde-control` y
+  `focus:ring-1 focus:ring-marca`; las tarjetas y los botones, el `border-borde` suave.
 - Toda vista necesita sus estados: cargando, vacío, error, sin señal.
   Ojo: «lista vacía» y «el filtro no encontró nada» son pantallas distintas.
 
@@ -118,6 +125,28 @@ Dos cosas sobre cómo usarlos:
 La carpeta está fuera de `app/` y de `public/` para que Next no la sirva ni la
 empaquete: los diseños no van a producción.
 
+**Tres desvíos del prototipo, aprobados por el usuario el 20/10/2026.** Salieron
+de la revisión de diseño y acá ya no manda `Cuoty.html`:
+
+1. **La plata va en tinta.** Sin color por moneda: terracota para colones y teal
+   para dólares es del prototipo y quedó atrás. El ₡ o el $ dicen la moneda y solo
+   los dólares llevan chip (`ChipMoneda` devuelve `null` para CRC).
+2. **Fondo piedra (`#efede9`), no crema.** El crema con terracota es la paleta por
+   defecto de las interfaces generadas.
+3. **Sin mayúsculas espaciadas como títulos.** Las etiquetas tipo «MI SALDO
+   PENDIENTE» pasan a títulos de verdad (fase 3 del plan, todavía pendiente).
+
+La regla de color que salió de ahí (fase 1, ya hecha):
+
+| Uso | Token | Ejemplos |
+| --- | --- | --- |
+| Acción | `marca` | logo, botón principal, pestaña activa, enlaces |
+| Selección | `tinta` | moneda elegida, método de pago, tienda activa, casillas |
+| Estado | `ok` / `peligro` | al día, a favor, abonos, errores, anular |
+| Plata | `tinta` | todos los montos |
+
+`marca` era `crc`: se renombró porque el terracota ya no significa «colones».
+
 **Skill `design-taste-frontend`** (taste-skill, de `Leonxlnx/taste-skill`): vive en
 `.claude/skills/design-taste-frontend/`, instalada con
 `npx skills add Leonxlnx/taste-skill -a claude-code -y --copy`; `skills-lock.json` la
@@ -126,12 +155,12 @@ registra y `npx skills update` la actualiza. Sus scripts dejan trabajo en
 sin ornamentos) es una guía de gusto, **no manda**: el prototipo de `design/` y las
 convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo— le ganan.
 
-- **Su `lint.mjs --app` falla sobre Cuoty, y en buena parte es a propósito.** Marca
-  las etiquetas chicas en mayúscula espaciada y el degradado de `compras/carrusel.tsx`,
-  pero el prototipo los dibuja así (tiene 36 `text-transform:uppercase`). Tampoco
-  distingue: el `animate-pulse` de `loading.tsx` es el esqueleto de carga, y las
+- **Su `lint.mjs --app` falla sobre Cuoty, y no todo es un error.** Las etiquetas
+  chicas en mayúscula espaciada sí se van (desvío 3, arriba). El degradado de
+  `compras/carrusel.tsx` es una máscara que desvanece los chips en el borde, no un
+  relleno. El `animate-pulse` de `loading.tsx` es el esqueleto de carga, y las
   sombras de los selectores son menús flotantes, que su propia regla permite. No
-  «arreglés» sus FAIL a ciegas; contrastalos con `design/`.
+  «arreglés» sus FAIL a ciegas.
 - **En el contenedor de la nube el inspector no arranca solo.** No encuentra el
   Chromium de Playwright y, como corre de root, Chrome exige `--no-sandbox`. La
   skill no acepta flags extra, así que va un envoltorio (fuera del repo, para no
@@ -153,8 +182,8 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
   `preview_start`, que devuelve la salida — código 0 sin texto es que pasó limpio.
   Sirve para `tsc`, para `next build` y para un `grep` puntual. **Ese archivo está
   en `.gitignore`**, así que las entradas son locales y hay que rehacerlas en cada
-  clon; conviene dejar fijas `typecheck` (con `--incremental false`, ver abajo) y
-  `build`. Lo que toque correr de verdad al usuario, pasáselo en un bloque ```bash.
+  clon; conviene dejar fijas `typecheck` (con `--incremental false`, ver abajo),
+  `build` y `contraste`. Lo que toque correr de verdad al usuario, pasáselo en un bloque ```bash.
 - **Verificá manejando la UI de verdad**, no solo con `tsc`. Los bugs que más han
   dolido acá —casas duplicadas, la tuerca que no salía, Realtime mudo, el 404 al
   borrar, el campo del código que truncaba a 6 dígitos uno de 8— no los agarra el
@@ -239,6 +268,10 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
   (admin ve la casa, miembro solo lo suyo), así que el cambio no movió los
   alcances. Queda un borde preexistente: un saldo **a favor** cuenta como
   «miembro debe», porque solo se filtra el cero.
+- **El blanco sobre el terracota del modo oscuro daba 3,07:1.** En oscuro los
+  rellenos de color son claros (`#d97a4e`, `#f0707f`, `#6bbf85`), así que el texto
+  encima tiene que ser oscuro. Por eso existe `sobre-relleno`. Lo mismo le pasaba a
+  la tilde de «comprado»: blanco sobre el verde oscuro daba 2,2:1.
 - **Los buffers de `read_console_messages` y `preview_logs` son acumulativos.** Un
   error de un render intermedio —típico entre dos ediciones, cuando el JSX ya usa
   algo que todavía no se importó— sigue apareciendo después de arreglarlo, y

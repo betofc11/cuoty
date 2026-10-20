@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     title: NOMBRE,
     // `default` deja que iOS pinte la barra de estado con el theme-color y
     // elija el color de texto legible — así sirve en claro y en oscuro. Con
-    // `black-translucent` el texto queda blanco fijo, ilegible sobre #efe9e1.
+    // `black-translucent` el texto queda blanco fijo, ilegible sobre #efede9.
     statusBarStyle: 'default',
   },
 

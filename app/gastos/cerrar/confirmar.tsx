@@ -30,8 +30,8 @@ export function Confirmar({
         <button
           type="submit"
           disabled={pendiente}
-          className="min-h-touch bg-crc w-full rounded-2xl px-5 text-base font-semibold
-                     text-white disabled:opacity-60"
+          className="min-h-touch bg-marca w-full rounded-2xl px-5 text-base font-semibold
+                     text-sobre-relleno disabled:opacity-60"
         >
           {pendiente
             ? 'Cerrando…'

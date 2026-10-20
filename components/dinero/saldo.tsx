@@ -1,5 +1,9 @@
 import { formatBalance, isZero, type MoneyAny, type MoneyPair } from '@/lib/money'
 
+/**
+ * El rótulo y el monto llevan el mismo tono, que sigue al estado y no a la
+ * moneda: lo pendiente en tinta, lo a favor en verde.
+ */
 const tonos = {
   debe: 'text-tinta',
   favor: 'text-ok',
@@ -19,14 +23,13 @@ export function Saldo({
   tamano?: 'grande' | 'normal'
 }) {
   const { tone, label, text } = formatBalance(monto)
-  const color = monto.currency === 'CRC' ? 'text-crc' : 'text-usd'
 
   return (
     <span className="inline-flex items-baseline gap-2">
       <span className={`text-sm ${tonos[tone]}`}>{label}</span>
       <span
         className={`font-semibold ${tamano === 'grande' ? 'text-3xl' : 'text-base'} ${
-          tone === 'al-dia' ? 'text-tinta-suave' : color
+          tonos[tone]
         }`}
       >
         {text}

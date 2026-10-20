@@ -51,7 +51,7 @@ export default async function DashboardPage() {
 
               <Link
                 href={`/saldos/${mio.membershipId}`}
-                className="min-h-touch text-crc flex items-center text-base font-semibold"
+                className="min-h-touch text-marca flex items-center text-base font-semibold"
               >
                 Ver mis movimientos
               </Link>

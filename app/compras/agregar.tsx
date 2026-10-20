@@ -52,16 +52,16 @@ export function AgregarItem() {
           placeholder="Agregar item…"
           autoComplete="off"
           maxLength={80}
-          className="min-h-touch border-borde bg-superficie text-tinta
-                     placeholder:text-tinta-suave focus:border-crc min-w-0 flex-1
+          className="min-h-touch border-borde-control bg-superficie text-tinta
+                     placeholder:text-tinta-suave focus:border-marca focus:ring-marca focus:ring-1 min-w-0 flex-1
                      rounded-2xl border px-4 text-base outline-none"
         />
         <button
           type="submit"
           disabled={pendiente || texto.trim().length === 0}
           aria-label={pendiente ? 'Agregando' : 'Agregar item'}
-          className="min-h-touch bg-crc flex size-12 shrink-0 items-center justify-center
-                     rounded-2xl text-2xl font-semibold text-white disabled:opacity-60"
+          className="min-h-touch bg-marca flex size-12 shrink-0 items-center justify-center
+                     rounded-2xl text-2xl font-semibold text-sobre-relleno disabled:opacity-60"
         >
           <span aria-hidden="true">{pendiente ? '···' : '+'}</span>
         </button>

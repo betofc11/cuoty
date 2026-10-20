@@ -32,8 +32,8 @@ export default async function OnboardingPage() {
       <div className="flex flex-col gap-3">
         <Link
           href="/onboarding/crear"
-          className="min-h-touch bg-crc flex items-center justify-center rounded-2xl
-                     px-5 text-base font-semibold text-white"
+          className="min-h-touch bg-marca flex items-center justify-center rounded-2xl
+                     px-5 text-base font-semibold text-sobre-relleno"
         >
           Crear una casa
         </Link>
@@ -52,7 +52,7 @@ export default async function OnboardingPage() {
       <footer className="border-borde flex items-center justify-between gap-3 border-t pt-4">
         <span className="text-tinta-suave truncate text-sm">{user.email}</span>
         <form action="/auth/signout" method="post">
-          <button type="submit" className="min-h-touch text-crc px-2 text-base font-semibold">
+          <button type="submit" className="min-h-touch text-marca px-2 text-base font-semibold">
             Salir
           </button>
         </form>

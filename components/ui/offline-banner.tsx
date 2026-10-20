@@ -32,7 +32,7 @@ export function OfflineBanner() {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="min-h-touch text-crc shrink-0 px-3 text-base font-semibold"
+        className="min-h-touch text-marca shrink-0 px-3 text-base font-semibold"
       >
         Reintentar
       </button>

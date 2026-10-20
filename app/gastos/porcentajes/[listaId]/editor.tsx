@@ -152,9 +152,7 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
                             <span className="text-tinta-suave">
                               {d.minor > 0 ? 'Le suma ' : 'Le baja '}
                             </span>
-                            <span
-                              className={`font-semibold ${d.currency === 'CRC' ? 'text-crc' : 'text-usd'}`}
-                            >
+                            <span className="text-tinta font-semibold">
                               {formatMoney(money(Math.abs(d.minor), d.currency))}
                             </span>
                           </span>
@@ -187,8 +185,8 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
           <button
             type="submit"
             disabled={pendiente}
-            className="min-h-touch bg-crc w-full rounded-2xl px-5 text-base font-semibold
-                       text-white disabled:opacity-60"
+            className="min-h-touch bg-marca w-full rounded-2xl px-5 text-base font-semibold
+                       text-sobre-relleno disabled:opacity-60"
           >
             {pendiente ? 'Guardando…' : 'Guardar y anotar los movimientos'}
           </button>
@@ -216,12 +214,14 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
         Porcentajes · {vista.lista.nombre}
       </h1>
 
+      {/* Que no cuadre no es un error, es un reparto a medias: va en neutro.
+          El color de la marca acá se leía como alarma. */}
       <div
         className={`rounded-2xl border p-4 ${
-          cuadra ? 'border-ok/40 bg-ok/10' : 'border-crc/40 bg-crc-tenue/40'
+          cuadra ? 'border-ok/40 bg-ok/10' : 'border-borde bg-superficie'
         }`}
       >
-        <p className={`text-lg font-semibold ${cuadra ? 'text-ok' : 'text-crc'}`}>
+        <p className={`text-lg font-semibold ${cuadra ? 'text-ok' : 'text-tinta'}`}>
           {cuadra ? 'Cuadra: 100%' : `${fmtPct(Math.abs(restante))}%`}
         </p>
         <p className="text-tinta-suave text-sm">
@@ -300,8 +300,9 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
                   inputMode="decimal"
                   value={fmtPct(bp)}
                   onChange={(e) => escribir(m.membershipId, e.target.value)}
-                  className="border-borde bg-superficie-alta text-tinta h-12 w-16 rounded-xl
-                             border text-center text-base font-semibold"
+                  className="border-borde-control bg-superficie-alta text-tinta focus:border-marca
+                             focus:ring-marca h-12 w-16 rounded-xl border text-center text-base
+                             font-semibold outline-none focus:ring-1"
                 />
                 <button
                   type="button"
@@ -321,7 +322,7 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
         <span className="text-tinta-suave text-sm">
           Tocá el número para escribirlo con teclado. Los ± mueven de 5 en 5.
         </span>
-        <span className={`shrink-0 text-base font-semibold ${cuadra ? 'text-ok' : 'text-crc'}`}>
+        <span className={`shrink-0 text-base font-semibold ${cuadra ? 'text-ok' : 'text-tinta'}`}>
           Suma {fmtPct(suma)}%
         </span>
       </div>
@@ -330,7 +331,7 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
         <button
           type="button"
           onClick={() => setConfirmando(true)}
-          className="min-h-touch bg-crc w-full rounded-2xl px-5 text-base font-semibold text-white"
+          className="min-h-touch bg-marca w-full rounded-2xl px-5 text-base font-semibold text-sobre-relleno"
         >
           {hayMovimiento ? 'Revisar qué se mueve' : 'Guardar porcentajes'}
         </button>
@@ -338,8 +339,8 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
         <button
           type="button"
           disabled
-          className="min-h-touch bg-crc w-full rounded-2xl px-5 text-base font-semibold
-                     text-white opacity-50"
+          className="min-h-touch bg-marca w-full rounded-2xl px-5 text-base font-semibold
+                     text-sobre-relleno opacity-50"
         >
           Guardar · {restante > 0 ? `faltan ${fmtPct(restante)}%` : `sobran ${fmtPct(-restante)}%`}
         </button>

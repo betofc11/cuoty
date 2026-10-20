@@ -19,8 +19,8 @@ export function Field({
       <input
         id={id}
         aria-describedby={hintId}
-        className={`min-h-touch border-borde bg-superficie-alta text-tinta
-                   placeholder:text-tinta-suave focus:border-crc rounded-2xl border
+        className={`min-h-touch border-borde-control bg-superficie-alta text-tinta
+                   placeholder:text-tinta-suave focus:border-marca focus:ring-marca focus:ring-1 rounded-2xl border
                    px-4 text-base outline-none ${className}`}
         {...props}
       />

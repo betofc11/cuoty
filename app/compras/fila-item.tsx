@@ -30,7 +30,7 @@ function Casilla({ item }: { item: ItemVista }) {
       <span
         aria-hidden="true"
         className={`flex size-6 items-center justify-center rounded-full border-2 transition ${
-          item.comprado ? 'border-ok bg-ok text-white' : 'border-borde'
+          item.comprado ? 'border-ok bg-ok text-sobre-relleno' : 'border-borde'
         } ${pending ? 'opacity-50' : ''}`}
       >
         {item.comprado ? (

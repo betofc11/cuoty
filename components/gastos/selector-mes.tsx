@@ -24,7 +24,7 @@ export function SelectorMes({
         onClick={() => setAbierto((v) => !v)}
         aria-expanded={abierto}
         aria-haspopup="menu"
-        className="min-h-touch border-crc text-crc flex items-center gap-2 rounded-full
+        className="min-h-touch border-marca text-marca flex items-center gap-2 rounded-full
                    border px-4 text-base font-semibold"
       >
         {nombreDeMes(actual.mes)}
@@ -63,7 +63,7 @@ export function SelectorMes({
                       {nombreDeMes(p.mes)}
                     </span>
                     <span
-                      className={`text-sm ${p.estado === 'open' ? 'text-crc font-medium' : 'text-tinta-suave'}`}
+                      className={`text-sm ${p.estado === 'open' ? 'text-tinta font-medium' : 'text-tinta-suave'}`}
                     >
                       {p.estado === 'open' ? 'Abierto' : 'Cerrado'}
                     </span>
@@ -78,10 +78,10 @@ export function SelectorMes({
               <Link
                 href={`/gastos/cerrar?mes=${claveDeMes(actual.mes)}`}
                 onClick={() => setAbierto(false)}
-                className="border-borde bg-crc-tenue/40 active:bg-crc-tenue flex min-h-touch
+                className="border-borde bg-marca-tenue/40 active:bg-marca-tenue flex min-h-touch
                            flex-col justify-center border-t px-4 py-3"
               >
-                <span className="text-crc text-base font-semibold">
+                <span className="text-marca text-base font-semibold">
                   Terminar {nombreDeMes(actual.mes, { conAnio: false }).toLowerCase()}
                 </span>
                 <span className="text-tinta-suave text-sm">Solo vos podés cerrarlo</span>

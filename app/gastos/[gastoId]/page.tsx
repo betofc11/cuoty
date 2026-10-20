@@ -70,7 +70,7 @@ export default async function GastoPage({
           {esAdmin && !anulado ? (
             <Link
               href={`/gastos/${gasto.id}/editar`}
-              className="min-h-touch text-crc flex shrink-0 items-center px-2 text-base font-semibold"
+              className="min-h-touch text-marca flex shrink-0 items-center px-2 text-base font-semibold"
             >
               Editar
             </Link>
