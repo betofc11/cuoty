@@ -138,6 +138,10 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
   tocar la skill y que `npx skills update` siga limpio):
   `printf '#!/bin/sh\nexec /opt/pw-browsers/chromium --no-sandbox "$@"\n' > chrome.sh`,
   `chmod +x` y `CHROME_PATH=$PWD/chrome.sh`. En una Mac encuentra Chrome sin ayuda.
+- **En la nube no hay cómo ver pantallas con sesión.** El modo automático bloquea
+  fabricar una (ponerle contraseña temporal a un usuario del seed, o mockear la
+  sesión), y después de eso desconfía también del navegador. Para revisar la UI
+  logueada, pedile al usuario capturas del iPhone, en claro y en oscuro.
 
 ## Cómo trabajar acá
 
