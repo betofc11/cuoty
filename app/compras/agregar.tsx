@@ -29,7 +29,8 @@ export function AgregarItem() {
   )
 
   return (
-    <div className="border-borde bg-superficie-alta flex flex-col gap-2 border-t px-4 py-3">
+    // Sin fondo ni borde propios: los pone `PieDeSeccion`, a todo el ancho.
+    <div className="flex flex-col gap-2 px-4 py-3">
       {estado.error ? <Alert tono="error">{estado.error}</Alert> : null}
 
       <form action={accion} className="flex gap-2">

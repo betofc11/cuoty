@@ -26,7 +26,7 @@ export default function manifest(): MetadataRoute.Manifest {
     scope: '/',
 
     // Sin `orientation`: fijarla en portrait rompe WCAG 1.3.4 y el layout ya
-    // aguanta landscape (va centrado a 390px).
+    // aguanta landscape (va centrado en una columna de 28rem).
 
     // `background_color` es el splash mientras carga: tiene que ser el mismo
     // `--fondo` del body o se ve un parpadeo de color al abrir.

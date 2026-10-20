@@ -15,24 +15,35 @@ export function Navbar({
   inicial: string
 }) {
   return (
+    // Del color del fondo y no de la superficie: es lo que queda justo bajo la
+    // barra de estado, que iOS pinta con el `theme-color` (el fondo). Las
+    // pantallas de detalle arrancan con el fondo también, así no hay costura.
     <header
-      className="border-borde bg-superficie-alta sticky top-0 z-20 flex items-center
-                 gap-2 border-b px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.5rem)]"
+      className="border-borde bg-fondo sticky top-0 z-20 border-b pt-[calc(env(safe-area-inset-top)+0.5rem)]
+                 pb-2"
     >
-      <Link href="/" aria-label="Cuoty · ir al dashboard" className="min-h-touch flex items-center">
-        <Logo size="chico" />
-      </Link>
+      <div className="max-w-app mx-auto flex items-center gap-2 px-4">
+        <Link href="/" aria-label="Cuoty · ir al inicio" className="min-h-touch flex items-center">
+          <Logo size="chico" />
+        </Link>
 
-      <SelectorCasa activa={activa} casas={casas} />
+        <SelectorCasa activa={activa} casas={casas} />
 
-      <Link
-        href="/cuenta"
-        aria-label="Mi cuenta"
-        className="border-borde bg-superficie text-tinta flex size-10 shrink-0
-                   items-center justify-center rounded-full border text-base font-semibold"
-      >
-        {inicial}
-      </Link>
+        {/* El círculo mide 40 pero se toca en 48, como todo target de la app. */}
+        <Link
+          href="/cuenta"
+          aria-label="Mi cuenta"
+          className="flex size-12 shrink-0 items-center justify-center"
+        >
+          <span
+            aria-hidden="true"
+            className="border-borde bg-superficie text-tinta flex size-10 items-center
+                       justify-center rounded-full border text-base font-semibold"
+          >
+            {inicial}
+          </span>
+        </Link>
+      </div>
     </header>
   )
 }

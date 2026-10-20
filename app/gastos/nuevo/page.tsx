@@ -40,7 +40,7 @@ export default async function NuevoGastoPage({
   const periodo = (mes ? periodos?.find((p) => p.month.startsWith(mes)) : null) ?? periodos?.[0]
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col gap-5 p-4 py-5">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-5 px-4 pt-5 pb-seguro">
       <BackLink href="/gastos">Volver</BackLink>
 
       <header className="flex flex-col gap-1">

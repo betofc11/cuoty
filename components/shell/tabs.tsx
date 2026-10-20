@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation'
 const TABS = [
   {
     href: '/',
-    texto: 'Dashboard',
+    texto: 'Inicio',
     d: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z',
   },
   {
@@ -28,9 +28,9 @@ export function Tabs() {
   return (
     <nav
       aria-label="Secciones"
-      // El sticky y el safe-area viven en el contenedor del Shell, que
-      // envuelve estas tabs y el pie de la página.
-      className="border-borde bg-superficie-alta grid grid-cols-3 border-t"
+      // El sticky, el fondo, el borde y el safe-area viven en el contenedor
+      // del Shell, que va a todo el ancho; acá solo se centra el contenido.
+      className="max-w-app mx-auto grid grid-cols-3"
     >
       {TABS.map((tab) => {
         const activo = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href)

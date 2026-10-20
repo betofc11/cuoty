@@ -9,7 +9,7 @@ export default function Loading() {
     <div
       role="status"
       aria-live="polite"
-      className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col gap-4 p-4 py-5"
+      className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-4 px-4 pt-5 pb-seguro"
     >
       {/* El texto va acá y no en un aria-label: una live region anuncia su
           CONTENIDO, y los bloques de abajo no tienen ninguno. Con solo el

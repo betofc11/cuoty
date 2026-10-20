@@ -8,7 +8,7 @@ export const metadata = { title: 'No encontramos eso' }
  */
 export default function NotFound() {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col justify-center gap-6 p-4">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col justify-center gap-6 p-4">
       <div className="flex flex-col gap-2">
         <h1 className="text-tinta text-xl font-semibold">No encontramos eso</h1>
         <p className="text-tinta-suave text-base">

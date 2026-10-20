@@ -148,6 +148,30 @@
 
   /* Target táctil mínimo. Regla de UI: 48×48. */
   --spacing-touch: 3rem;
+
+  /* La columna de contenido (`max-w-app`). Antes era 390px, el ancho del
+     iPhone 12 al 14: del 15 en adelante todos miden más (393, 402, 430, 440) y
+     las barras terminaban antes del borde. 28rem cubre el más ancho, y en una
+     tablet o en la compu deja una columna centrada. Las barras van a todo el
+     ancho; solo su contenido se limita a esto. */
+  --container-app: 28rem;
+}
+
+@theme {
+  /* Las hojas inferiores suben desde el borde, como las de iOS. */
+  --animate-hoja: hoja-sube 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  @keyframes hoja-sube {
+    from {
+      transform: translateY(100%);
+    }
+  }
+}
+
+/* El último elemento de una pantalla sin tabs no puede quedar bajo el
+   indicador de inicio: son 34pt en los iPhone sin botón. */
+@utility pb-seguro {
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
 }
 
 @layer base {

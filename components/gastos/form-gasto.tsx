@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react'
 
+import { AccionFija } from '@/components/ui/accion-fija'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { OfflineBanner } from '@/components/ui/offline-banner'
@@ -246,13 +247,15 @@ export function FormGasto({
         </div>
       ) : null}
 
-      <Button type="submit" disabled={pendiente}>
-        {pendiente
-          ? 'Guardando…'
-          : recurrente
-            ? 'Agregar gasto recurrente'
-            : etiquetaEnvio}
-      </Button>
+      <AccionFija>
+        <Button type="submit" disabled={pendiente}>
+          {pendiente
+            ? 'Guardando…'
+            : recurrente
+              ? 'Agregar gasto recurrente'
+              : etiquetaEnvio}
+        </Button>
+      </AccionFija>
     </form>
   )
 }

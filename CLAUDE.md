@@ -69,6 +69,29 @@ Romper cualquiera de estas es un bug, aunque el código compile.
 - Toda vista necesita sus estados: cargando, vacío, error, sin señal.
   Ojo: «lista vacía» y «el filtro no encontró nada» son pantallas distintas.
 
+### El marco (fase 2 del plan de diseño)
+
+- **Las cuatro pestañas viven en `app/(tabs)/`** (`page.tsx` es `/`, más `gastos`,
+  `saldos` y `compras`), y su `layout.tsx` monta el `Shell`. Así el marco no se
+  desmonta al cambiar de pestaña: antes cada página traía su `Shell` y el
+  `loading.tsx` de la raíz lo reemplazaba entero en cada toque. Cada pestaña trae su
+  `loading.tsx` con su forma y el grupo trae su `error.tsx`, los dos dentro del marco.
+- **Las pantallas de detalle quedan fuera del grupo** (`app/gastos/nuevo`,
+  `app/saldos/[membershipId]`…): pantalla completa, con «Volver» y sin tabs.
+  Comparten carpeta de nombre con su pestaña (`app/gastos/` y `app/(tabs)/gastos/`)
+  y Next lo acepta porque ninguna ruta se repite.
+- **Ancho:** `max-w-app` (28rem, en `@theme` de `globals.css`) para el contenido.
+  Las barras van a todo el ancho y solo su contenido se limita: en un iPhone más
+  ancho que la columna, las barras cortadas dejaban franjas del fondo a los lados.
+- **Abajo:** las pantallas sin tabs terminan en `pb-seguro` (20px más el indicador
+  de inicio), y la acción final de un formulario largo va en `<AccionFija>`
+  (`components/ui/accion-fija.tsx`), anclada al pie mientras se recorre.
+- **Elegir de una lista va en una `<Hoja>`** (`components/ui/hoja.tsx`), que es un
+  `<dialog>` que sube desde abajo, al alcance del pulgar. Así son hoy el selector de
+  casa y el de mes. Nada de menús que se abren arriba.
+- **La barra de arriba es del color del fondo**, como el `theme-color`, para que no
+  haya costura con la barra de estado de iOS.
+
 ## Auth y correo
 
 Se entra con un **código numérico** que llega por correo, o con Google. No hay
@@ -235,7 +258,18 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
 - **`npm run typecheck` miente con la caché.** `tsconfig.tsbuildinfo` guarda rutas
   que ya no existen y `tsc` sigue reportándolas después de agregar una página,
   aunque los archivos generados estén bien. La entrada `typecheck` de
-  `launch.json` corre con `--incremental false` justo por eso.
+  `launch.json` corre con `--incremental false` justo por eso. Pasa lo mismo al
+  **mover** una página: `.next/types/validator.ts` sigue apuntando a la ruta vieja
+  hasta el próximo `next build` o `next dev`, y `tsc` falla con «Cannot find module».
+- **Un `<dialog>` no lleva clases de display** (`flex`, `grid`, `block`): pisan el
+  `display: none` con el que el navegador lo esconde cerrado, y queda siempre a la
+  vista. El layout va en un `div` de adentro (ver `components/ui/hoja.tsx`).
+- **Lo que vive en el layout de las tabs no se desmonta al navegar**, así que su
+  estado sobrevive. El selector de casa se cierra solo porque escucha el cambio de
+  `activa.id`; si agregás otro control con estado al `Shell`, pensá cuándo se resetea.
+- **El alta de Compras sale de `PieDeSeccion`, que mira la ruta**, y no de un slot
+  paralelo (`@pie`). En una navegación del lado del cliente, un slot sin página
+  para la ruta nueva se queda mostrando la anterior: el alta aparecería en Gastos.
 - **Comentarios**: `/* ... */` dentro de un bloque `/** ... */` lo cierra antes.
 - **`close_period` hace dos cosas de más**: crea el período siguiente si no existe y
   le corre `generate_recurring_expenses`. Al cerrar meses viejos en lote, el último
@@ -303,7 +337,6 @@ Pendiente:
   admin, y el check `periods_closed_shape` acepta volver a `open` con `closed_at`
   y `closed_by` en NULL).
 - «Leaked password protection» sigue apagada en Supabase (la app no usa contraseñas).
-- `Shell` es un componente y no `app/(app)/layout.tsx`, porque `app/page.tsx` ocupa `/`.
 
 ## Datos de prueba
 

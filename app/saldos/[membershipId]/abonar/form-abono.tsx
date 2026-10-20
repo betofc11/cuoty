@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from 'react'
 
 import { registrarAbono, type EstadoAbono } from '@/app/saldos/acciones'
+import { AccionFija } from '@/components/ui/accion-fija'
 import { Alert } from '@/components/ui/alert'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { nombreDeMes } from '@/lib/fechas'
@@ -210,18 +211,20 @@ export function FormAbono({
         </section>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pendiente || !monto || monto.minor <= 0}
-        className="min-h-touch bg-marca w-full rounded-2xl px-5 text-base font-semibold
-                   text-sobre-relleno disabled:opacity-50"
-      >
-        {pendiente
-          ? 'Registrando…'
-          : monto && monto.minor > 0
-            ? `Acreditar ${formatMoney(monto)} a ${nombre}`
-            : 'Escribí el monto'}
-      </button>
+      <AccionFija>
+        <button
+          type="submit"
+          disabled={pendiente || !monto || monto.minor <= 0}
+          className="min-h-touch bg-marca w-full rounded-2xl px-5 text-base font-semibold
+                     text-sobre-relleno disabled:opacity-50"
+        >
+          {pendiente
+            ? 'Registrando…'
+            : monto && monto.minor > 0
+              ? `Acreditar ${formatMoney(monto)} a ${nombre}`
+              : 'Escribí el monto'}
+        </button>
+      </AccionFija>
     </form>
   )
 }

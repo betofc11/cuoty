@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 
+import { AccionFija } from '@/components/ui/accion-fija'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import type { DetalleItem, TagVista, TiendaVista } from '@/lib/compras/consultas'
@@ -148,9 +149,11 @@ export function EditorItem({
         {estado.error ? <Alert tono="error">{estado.error}</Alert> : null}
         {estado.ok ? <Alert tono="ok">{estado.ok}</Alert> : null}
 
-        <Button type="submit" disabled={pendiente}>
-          {pendiente ? 'Guardando…' : 'Guardar cambios'}
-        </Button>
+        <AccionFija>
+          <Button type="submit" disabled={pendiente}>
+            {pendiente ? 'Guardando…' : 'Guardar cambios'}
+          </Button>
+        </AccionFija>
       </form>
 
       <form action={borrarItem} className="border-borde border-t pt-2">

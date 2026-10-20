@@ -1,6 +1,5 @@
 import Link from 'next/link'
 
-import { Shell } from '@/components/shell/shell'
 import { Button } from '@/components/ui/button'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { contextoDeCasa } from '@/lib/casas/activa'
@@ -13,12 +12,11 @@ import {
 } from '@/lib/compras/consultas'
 import { tonoDeEtiqueta } from '@/lib/compras/tonos'
 
-import { archivarComprados } from './acciones'
-import { AgregarItem } from './agregar'
-import { Buscador } from './buscador'
-import { Carrusel } from './carrusel'
-import { FilaComprada, FilaItem } from './fila-item'
-import { RealtimeCompras } from './realtime'
+import { archivarComprados } from '@/app/compras/acciones'
+import { Buscador } from '@/app/compras/buscador'
+import { Carrusel } from '@/app/compras/carrusel'
+import { FilaComprada, FilaItem } from '@/app/compras/fila-item'
+import { RealtimeCompras } from '@/app/compras/realtime'
 
 type Params = { tienda?: string; tag?: string; q?: string; filtros?: string }
 
@@ -206,7 +204,7 @@ export default async function ComprasPage({
   const enLista = [...vista.items, ...vista.compradosHoy]
 
   return (
-    <Shell pie={<AgregarItem />}>
+    <>
       <RealtimeCompras casaId={activa.id} />
 
       <div className="flex flex-col gap-4">
@@ -448,6 +446,6 @@ export default async function ComprasPage({
           ) : null}
         </div>
       </div>
-    </Shell>
+    </>
   )
 }

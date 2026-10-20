@@ -11,7 +11,7 @@ export const metadata = { title: 'Sin señal' }
  */
 export default function OfflinePage() {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[390px] flex-col justify-center gap-6 p-4">
+    <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col justify-center gap-6 p-4">
       <Logo />
 
       <div className="flex flex-col gap-2">
