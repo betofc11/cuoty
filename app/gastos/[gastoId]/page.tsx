@@ -109,7 +109,7 @@ export default async function GastoPage({
       </section>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+        <h2 className="text-tinta text-base font-semibold">
           Cómo se reparte
         </h2>
         <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">

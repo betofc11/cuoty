@@ -66,7 +66,7 @@ export default async function RecurrentesPage() {
 
       {vigentes.length > 0 ? (
         <section className="flex flex-col gap-2">
-          <h2 className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+          <h2 className="text-tinta text-base font-semibold">
             Vigentes
           </h2>
           <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">
@@ -94,7 +94,7 @@ export default async function RecurrentesPage() {
 
       {terminados.length > 0 ? (
         <section className="flex flex-col gap-2">
-          <h2 className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+          <h2 className="text-tinta text-base font-semibold">
             Ya terminados
           </h2>
           <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">

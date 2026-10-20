@@ -53,68 +53,56 @@ export default async function SaldosPage() {
         </p>
       </header>
 
-      <ul className="flex flex-col gap-3">
+      {/* Una lista y no una tarjeta con dos botones por persona: en una casa de
+          cinco eran diez botones grandes, y lo que se vino a ver (cuánto debe
+          cada quien) quedaba chico entre ellos. La fila abre los movimientos. */}
+      <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">
         {saldos.map((s) => {
           const alDia = isZero(s.saldo.CRC) && isZero(s.saldo.USD)
 
           return (
-            <li
-              key={s.membershipId}
-              className="border-borde bg-superficie flex flex-col gap-3 rounded-2xl border p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <span className="flex min-w-0 flex-col">
-                  <span className="text-tinta truncate text-base font-semibold">
+            <li key={s.membershipId} className="flex items-stretch">
+              {/* El saldo va en su propia línea y no a la derecha del nombre: con
+                  «Abonar» al lado, en 390pt el nombre quedaba en 60px y se cortaba. */}
+              <Link
+                href={`/saldos/${s.membershipId}`}
+                className="active:bg-superficie-alta flex min-w-0 flex-1 items-center gap-3 p-4"
+              >
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  {/* Sin `truncate`: un nombre largo pasa a dos líneas antes que
+                      perder el apellido. */}
+                  <span className="text-tinta text-base font-semibold break-words">
                     {s.nombre}
                     {s.esYo ? ' (vos)' : ''}
                   </span>
+                  <SaldoPar par={s.saldo} tamano="normal" />
                   <span className="text-tinta-suave text-sm">
                     {isZero(s.cargo.CRC) && isZero(s.cargo.USD)
                       ? 'Sin cargos todavía'
                       : `Abonó ${formatMoney(s.abonado.CRC)} de ${formatMoney(s.cargo.CRC)}`}
                   </span>
                 </span>
-                <SaldoPar par={s.saldo} tamano="normal" />
-              </div>
+                <span aria-hidden="true" className="text-tinta-suave shrink-0 text-base">
+                  ›
+                </span>
+              </Link>
 
-              <div className="flex flex-wrap gap-2">
+              {/* Invariante 3: registrar abonos es exclusivo del admin.
+                  Al miembro no se le muestra apagado — no existe. */}
+              {esAdmin && !alDia ? (
                 <Link
-                  href={`/saldos/${s.membershipId}`}
-                  className="min-h-touch border-borde bg-superficie-alta text-tinta flex
-                             flex-1 items-center justify-center rounded-2xl border px-4
-                             text-base font-semibold"
+                  href={`/saldos/${s.membershipId}/abonar`}
+                  aria-label={`Registrar un abono de ${s.nombre}`}
+                  className="border-borde-suave active:bg-superficie-alta text-marca flex
+                             min-h-touch shrink-0 items-center border-l px-4 text-base font-semibold"
                 >
-                  Ver movimientos
+                  Abonar
                 </Link>
-
-                {/* Invariante 3: registrar abonos es exclusivo del admin.
-                    Al miembro no se le muestra apagado — no existe. */}
-                {esAdmin && !alDia ? (
-                  <Link
-                    href={`/saldos/${s.membershipId}/abonar`}
-                    className="min-h-touch bg-marca flex flex-1 items-center justify-center
-                               rounded-2xl px-4 text-base font-semibold text-sobre-relleno"
-                  >
-                    Registrar abono
-                  </Link>
-                ) : null}
-              </div>
+              ) : null}
             </li>
           )
         })}
       </ul>
-
-      {esAdmin ? (
-        <p className="text-tinta-suave text-sm">
-          Los miembros no registran abonos: solo ven su saldo y lo que ya les
-          acreditaste.
-        </p>
-      ) : (
-        <p className="text-tinta-suave text-sm">
-          Podés ver cada abono que te registraron, con la fecha, el monto y quién lo
-          anotó.
-        </p>
-      )}
     </div>
   )
 }

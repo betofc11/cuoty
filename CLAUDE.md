@@ -85,7 +85,9 @@ Romper cualquiera de estas es un bug, aunque el código compile.
   ancho que la columna, las barras cortadas dejaban franjas del fondo a los lados.
 - **Abajo:** las pantallas sin tabs terminan en `pb-seguro` (20px más el indicador
   de inicio), y la acción final de un formulario largo va en `<AccionFija>`
-  (`components/ui/accion-fija.tsx`), anclada al pie mientras se recorre.
+  (`components/ui/accion-fija.tsx`), anclada al pie mientras se recorre. En las
+  pestañas, la acción principal va sobre las tabs con `<AccionDePie>` (ver las
+  trampas).
 - **Elegir de una lista va en una `<Hoja>`** (`components/ui/hoja.tsx`), que es un
   `<dialog>` que sube desde abajo, al alcance del pulgar. Así son hoy el selector de
   casa y el de mes. Nada de menús que se abren arriba.
@@ -157,7 +159,20 @@ de la revisión de diseño y acá ya no manda `Cuoty.html`:
 2. **Fondo piedra (`#efede9`), no crema.** El crema con terracota es la paleta por
    defecto de las interfaces generadas.
 3. **Sin mayúsculas espaciadas como títulos.** Las etiquetas tipo «MI SALDO
-   PENDIENTE» pasan a títulos de verdad (fase 3 del plan, todavía pendiente).
+   PENDIENTE» pasaron a títulos de verdad (fase 3). Queda en mayúscula solo el
+   campo del código de invitación, porque ahí es el formato del código.
+
+Los estilos de texto que quedaron (fase 3):
+
+| Qué | Clases |
+| --- | --- |
+| Título de pantalla (`h1`) | `text-tinta text-xl font-semibold` |
+| Sección (`h2`) | `text-tinta text-base font-semibold`, en sentence case |
+| Rótulo chico que no es título | `text-tinta-suave text-sm font-medium` |
+| Etiqueta de campo | la de `components/ui/field.tsx`: `text-tinta text-base font-medium` |
+
+Cada pantalla abre con su `h1`, y el texto gris va para datos, no para explicar la
+interfaz: una frase de ayuda se queda solo si evita un error.
 
 La regla de color que salió de ahí (fase 1, ya hecha):
 
@@ -267,9 +282,29 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
 - **Lo que vive en el layout de las tabs no se desmonta al navegar**, así que su
   estado sobrevive. El selector de casa se cierra solo porque escucha el cambio de
   `activa.id`; si agregás otro control con estado al `Shell`, pensá cuándo se resetea.
-- **El alta de Compras sale de `PieDeSeccion`, que mira la ruta**, y no de un slot
-  paralelo (`@pie`). En una navegación del lado del cliente, un slot sin página
-  para la ruta nueva se queda mostrando la anterior: el alta aparecería en Gastos.
+- **La acción anclada sobre las tabs la pone la página, con `<AccionDePie>`**
+  (`components/shell/accion-de-pie.tsx`): un portal hacia el `div` vacío que el
+  `Shell` deja ahí. Así son el alta de Compras y «Agregar gasto». Probamos dos
+  cosas que no sirvieron. Un slot paralelo (`@pie`): en una navegación del lado
+  del cliente, un slot sin página para la ruta nueva se queda mostrando la
+  anterior. Y un componente del layout que mirara la ruta: no sabe si sos admin
+  ni si el mes está abierto. Un `sticky` dentro de la página tampoco sirve, porque
+  las tabs ya ocupan el `bottom-0`.
+- **Las variables de Vercel estaban solo en Production**, y los previews se
+  construían sin Supabase: cada pantalla con datos reventaba. Desde el 20/10/2026
+  `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` están también en
+  Preview. `NEXT_PUBLIC_SITE_URL` queda solo en Production a propósito: en un preview
+  `siteUrl()` cae a producción, así que ahí Google vuelve a producción y el correo
+  funciona.
+- **Un 401 en `POST /auth/v1/otp` es la clave pública mal puesta** (una vieja en
+  `.env.local`). La app lo mostraba como «No se pudo completar»; ahora dice «La app no
+  pudo hablar con su servidor» y las acciones de login escriben el error crudo en la
+  terminal. Para diagnosticar auth sin la terminal del usuario: `query_logs` del MCP
+  de Supabase, fuentes `auth_logs` y `edge_logs`.
+- **Google en local necesita `http://localhost:3000/**` en las Redirect URLs de
+  Supabase** (Authentication → URL Configuration). Si el `redirectTo` no está en
+  esa lista, Supabase no da error: manda al Site URL, que es producción. Y fijate el
+  puerto: si `next dev` cae en el 3001, `NEXT_PUBLIC_SITE_URL` tiene que decir 3001.
 - **Comentarios**: `/* ... */` dentro de un bloque `/** ... */` lo cierra antes.
 - **`close_period` hace dos cosas de más**: crea el período siguiente si no existe y
   le corre `generate_recurring_expenses`. Al cerrar meses viejos en lote, el último

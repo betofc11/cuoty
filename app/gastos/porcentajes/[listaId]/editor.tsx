@@ -124,7 +124,7 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
         </header>
 
         <section className="border-borde bg-superficie rounded-2xl border">
-          <h2 className="text-tinta-suave border-borde-suave border-b px-4 py-3 text-xs font-semibold tracking-wide uppercase">
+          <h2 className="text-tinta border-borde-suave border-b px-4 py-3 text-base font-semibold">
             Qué se mueve · {vista.lista.nombre}
           </h2>
           <ul className="divide-borde-suave divide-y">
@@ -234,7 +234,7 @@ export function EditorPorcentajes({ vista }: { vista: VistaPorcentajes }) {
       </div>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+        <h2 className="text-tinta text-base font-semibold">
           Repartos rápidos
         </h2>
         <div className="flex flex-wrap gap-2">

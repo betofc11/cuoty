@@ -61,7 +61,7 @@ export function FormGasto({
       {periodoId ? <input type="hidden" name="periodoId" value={periodoId} /> : null}
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="concepto" className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+        <label htmlFor="concepto" className="text-tinta text-base font-medium">
           Nombre
         </label>
         {/*
@@ -85,7 +85,7 @@ export function FormGasto({
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="monto" className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+        <label htmlFor="monto" className="text-tinta text-base font-medium">
           Monto
         </label>
         <div className="flex items-center gap-2">
@@ -97,10 +97,10 @@ export function FormGasto({
             name="monto"
             defaultValue={gasto?.monto ?? ''}
             inputMode="decimal"
-            placeholder={moneda === 'CRC' ? '38.400' : '15,99'}
+            placeholder="0"
             required
             className="min-h-touch border-borde-control bg-superficie-alta text-tinta
-                       placeholder:text-tinta-suave focus:border-marca focus:ring-marca focus:ring-1 w-full rounded-2xl border
+                       placeholder:text-tinta-suave placeholder:font-normal focus:border-marca focus:ring-marca focus:ring-1 w-full rounded-2xl border
                        px-4 text-xl font-semibold outline-none"
           />
         </div>
@@ -143,7 +143,7 @@ export function FormGasto({
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="listaId" className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+        <label htmlFor="listaId" className="text-tinta text-base font-medium">
           Lista
         </label>
         <select
@@ -166,7 +166,7 @@ export function FormGasto({
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="fechaCobro" className="text-tinta-suave text-xs font-semibold tracking-wide uppercase">
+        <label htmlFor="fechaCobro" className="text-tinta text-base font-medium">
           Fecha de cobro
         </label>
         <input
@@ -206,7 +206,7 @@ export function FormGasto({
             <div className="border-borde-suave flex flex-col gap-2 border-t pt-3">
               <label
                 htmlFor="ultimoCobro"
-                className="text-tinta-suave text-xs font-semibold tracking-wide uppercase"
+                className="text-tinta text-base font-medium"
               >
                 Último cobro
               </label>

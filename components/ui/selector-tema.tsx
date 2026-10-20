@@ -15,7 +15,7 @@ const OPCIONES: { valor: Tema; texto: string }[] = [
 export function SelectorTema({ actual }: { actual: Tema }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-tinta-suave text-sm font-semibold tracking-wide uppercase">
+      <h2 className="text-tinta text-base font-semibold">
         Apariencia
       </h2>
 
