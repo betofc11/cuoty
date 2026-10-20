@@ -105,9 +105,10 @@ Fase 1, hecha:
 - **Fila de una línea**: nombre y cantidad pegada («Leche · 2»). La segunda línea
   sale solo con nota o fotos. Tienda, etiquetas y «Agregado por» no van en la fila.
   Con nombre largo se corta el nombre, nunca la cantidad.
-- **Toda la fila marca** (`<button role="checkbox">`), con `useOptimistic`.
-  «Editar» va al final, con su palabra, y abre `/compras/[itemId]`. Antes el toque
-  grande abría el detalle, que es lo más raro en el súper.
+- **Toda la fila marca** (`<button role="checkbox">`), optimista con estado propio
+  y **no** con `useOptimistic` (ver «Una transición async congela las pestañas» en
+  las trampas). «Editar» va al final, con su palabra, y abre `/compras/[itemId]`.
+  Antes el toque grande abría el detalle, que es lo más raro en el súper.
 - **Agrupada por tienda** (`lib/compras/grupos.ts`), por nombre y con la
   predeterminada al final como «En cualquier tienda». Revierte la lista plana de
   antes: agrupar «partía la lista» cuando las filas tenían cuatro renglones.
@@ -272,10 +273,36 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
   tocar la skill y que `npx skills update` siga limpio):
   `printf '#!/bin/sh\nexec /opt/pw-browsers/chromium --no-sandbox "$@"\n' > chrome.sh`,
   `chmod +x` y `CHROME_PATH=$PWD/chrome.sh`. En una Mac encuentra Chrome sin ayuda.
-- **En la nube no hay cómo ver pantallas con sesión.** El modo automático bloquea
+- **Con el proyecto real no hay sesión en la nube.** El modo automático bloquea
   fabricar una (ponerle contraseña temporal a un usuario del seed, o mockear la
-  sesión), y después de eso desconfía también del navegador. Para revisar la UI
-  logueada, pedile al usuario capturas del iPhone, en claro y en oscuro.
+  sesión contra Supabase de verdad). Para ver la app logueada con datos de
+  mentira está el Supabase falso de las pruebas (ver «Pruebas»). Para cómo se ve
+  en el teléfono, con datos reales, pedile al usuario capturas del iPhone, en claro
+  y en oscuro.
+
+## Pruebas
+
+`npm run test:e2e` corre Playwright (`tests/e2e/`) contra la app de verdad,
+compilada como en producción, y un **Supabase falso** que vive en memoria
+(`tests/e2e/falso/supabase.mjs`, sin dependencias). Ese falso imita lo justo que
+usa Cuoty: `GET /auth/v1/user` con el token de prueba y PostgREST con `eq`, `in`,
+`is`, `order`, `limit`, `single` y escrituras. Arranca siempre con la casa de
+`tests/e2e/falso/datos.mjs` (inventada) y tiene tres palancas que las pruebas usan:
+`/__reiniciar`, `/__demora?ms=` (la señal del súper) y `/__fallar?tabla=`. No toca
+el proyecto real, así que se puede correr en la nube y con sesión.
+
+- **No hay RLS en el falso.** Las pruebas de permisos van impersonando en SQL contra
+  la base real (ver las trampas). Si una pantalla nueva usa un operador de
+  PostgREST que el falso no conoce, el falso lo dice con un 500 en la salida.
+- **El build de las pruebas lleva adentro la URL del falso** (las `NEXT_PUBLIC_*`
+  se escriben al compilar). Después de correrlas, volvé a compilar antes de un
+  `next start` contra Supabase de verdad.
+- Solo Chromium, con pantalla de iPhone y toques. En una Mac, la primera vez:
+  `npx playwright install chromium`. En el contenedor de la nube ya está.
+- `tests/e2e/navegacion.spec.ts` es el guardia de la barra de pestañas: prueba
+  cada pestaña desde cada pantalla y también **con una acción en vuelo**, que es
+  como se rompió. Lo de Compras (marcar, deshacer, fallos, sin señal) está en
+  `compras.spec.ts`.
 
 ## Cómo trabajar acá
 
@@ -401,6 +428,27 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
 
   Sin el claim, `app.is_house_admin` da false y `close_period` levanta 42501. Para la
   autoría alcanza `cuoty.actor_id`, que `current_actor()` mira antes que `auth.uid()`.
+- **Una transición async congela las pestañas.** React junta todas las
+  transiciones en curso: mientras una espera al servidor, no aplica ninguna otra,
+  y la navegación de Next es una transición. `useOptimistic`, `useActionState` y
+  `<form action>` corren la acción en una transición async, así que en una pestaña,
+  tocar la barra justo después de marcar o de agregar no hacía nada hasta que
+  volvía la respuesta (y con mala señal, nunca). Pasaba igual en `main`, con el
+  formulario de antes. En una pestaña, una acción que la gente hace y sigue de largo
+  (marcar, agregar) se llama **como función, fuera de toda transición**, con el
+  estado optimista a mano: ver `useMarcar` en `app/compras/fila-item.tsx` y
+  `app/compras/agregar.tsx`. La navegación descarta la acción pendiente, pero el
+  pedido ya salió y el servidor lo termina («The destination stream closed early»
+  en el log es eso, no un error). «Quitar los comprados» sigue como `<form action>`
+  a propósito: es en bloque y uno espera a que termine.
+- **`next dev` 16.3 agrega un bloque de reglas al final de CLAUDE.md** (el de
+  «nextjs-agent-rules», entre dos comentarios HTML) cada vez que arranca. No es
+  nuestro: no lo commitees sin que el usuario decida. Se apaga con
+  `agentRules: false` en `next.config.ts`. **Nunca escribas acá el comentario de
+  apertura literal:** `next dev` busca la primera aparición y reemplaza desde ahí
+  hasta el cierre, y se llevaría todo lo que haya en el medio. Y si cortás `next dev` a mitad de una compilación,
+  `.next/dev/types/validator.ts` puede quedar a medio escribir y el próximo
+  `next build` falla en el typecheck: `rm -rf .next/dev`.
 - **Una Server Action llamada como función puede rechazar sin que falte señal.**
   `marcarComprado` se llama dentro de un `try/catch` y los errores de la base vuelven
   como `{ error }`, pero al `catch` llegan también: el redirect de `requireUser`
@@ -408,7 +456,7 @@ convenciones de este archivo —íconos con texto, `min-h-touch`, 16px, voseo—
   abierta desde antes de un deploy (el id de la acción cambió y cada toque falla
   hasta recargar: `unstable_isUnrecognizedActionError`), y cualquier respuesta que
   no sea de Next. `navigator.onLine` solo es confiable cuando dice `false`: en iOS
-  da `true` con señal débil. Ver `app/compras/fila-item.tsx`.
+  da `true` con señal débil. Ver `app/compras/fallo.ts`.
 - **Los `timestamptz` de PostgREST no tienen largo fijo**: Postgres recorta los ceros
   de los milisegundos («…12+00:00» al lado de «…12.5+00:00»). Para ordenar, usá
   `Date.parse`, no comparación de texto.

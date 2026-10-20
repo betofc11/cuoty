@@ -37,3 +37,7 @@ yarn-error.log*
 
 # archivos de trabajo de la skill design-taste-frontend (capturas, borradores)
 /.taste-skill/
+
+# pruebas de punta a punta (Playwright)
+/test-results/
+/playwright-report/

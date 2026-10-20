@@ -1,77 +1,79 @@
 'use client'
 
 import Link from 'next/link'
-import { unstable_isUnrecognizedActionError, unstable_rethrow } from 'next/navigation'
-import { useOptimistic, useRef, useState, useTransition } from 'react'
+import { useRef, useState } from 'react'
 
 import type { ItemVista } from '@/lib/compras/consultas'
 
 import { marcarComprado } from './acciones'
-
-type Aviso = { texto: string; recargar?: boolean }
-
-/**
- * Qué decir cuando la llamada a la acción se cae. Los errores de la base no
- * llegan acá: `marcarComprado` los devuelve. Lo que llega es todo lo que pasa
- * antes de que la acción corra, y no todo es falta de señal:
- *
- * - Un redirect (la sesión venció y `requireUser` manda al login). Next ya
- *   está navegando: `unstable_rethrow` lo deja seguir en vez de pintar un
- *   aviso que dura un instante.
- * - Un deploy nuevo con la app abierta: el id de la acción ya no existe en el
- *   servidor y cada toque va a fallar igual hasta recargar. Reintentar no
- *   sirve, así que el aviso lo dice y trae el botón.
- * - El resto: sin red, un 5xx, una respuesta que no es de Next. `onLine` solo
- *   es confiable cuando dice false; en iOS da true con señal débil, así que
- *   el texto genérico no culpa a la señal.
- */
-function avisoDeFallo(e: unknown, verbo: string): Aviso {
-  unstable_rethrow(e)
-
-  if (unstable_isUnrecognizedActionError(e)) {
-    return { texto: 'Hay una versión nueva de Cuoty. Recargá para seguir.', recargar: true }
-  }
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    return { texto: `No se pudo ${verbo}: no hay señal. Probá de nuevo cuando vuelva.` }
-  }
-  return { texto: `No se pudo ${verbo}. Probá de nuevo; si sigue, recargá la página.` }
-}
+import { avisoDeFallo, type Aviso } from './fallo'
 
 /**
  * Marcar es lo que más se hace en el súper, así que va optimista: la tilde
  * sale con el toque y no cuando vuelve el servidor, que con la señal de un
- * supermercado tarda segundos. Si falla, `useOptimistic` la quita solo al
- * terminar la transición, porque el `item` que manda el servidor no cambió, y
- * la fila dice por qué.
+ * supermercado tarda segundos.
+ *
+ * Va con estado propio y NO con `useOptimistic` ni con un `<form action>`, y
+ * es a propósito. Los dos corren la acción dentro de una transición async, y
+ * React junta todas las transiciones en curso: mientras una espera al
+ * servidor, ninguna otra se aplica. La navegación de Next es una transición,
+ * así que tocar una pestaña justo después de marcar no hacía nada hasta que
+ * volvía la respuesta (y con mala señal, nunca). Llamada fuera de toda
+ * transición, la navegación descarta la acción pendiente y sale en el acto.
+ * Lo prueba `tests/e2e/navegacion.spec.ts`.
+ *
+ * `pedido` es lo que la persona tocó y el servidor todavía no mostró, y
+ * manda sobre `item.comprado` mientras tanto. Se suelta cuando llega un
+ * render del servidor sin toques en vuelo: Next resuelve la acción antes de
+ * aplicar el árbol nuevo, así que ese render ya trae el resultado. Si falla,
+ * se suelta enseguida y la fila dice por qué.
  *
  * Dos toques seguidos valen como dos intenciones: el segundo lee el valor
- * optimista y deshace el primero. Next corre las acciones en orden, así que
- * gana la última. Por eso solo la última puede escribir el aviso: si no, el
- * fallo del primer toque llegaba después y quedaba pegado en una fila que
- * terminó como la persona quería.
+ * pedido y deshace el primero. Next corre las acciones en orden, así que gana
+ * la última. Por eso solo la última puede escribir el aviso: si no, el fallo
+ * del primer toque llegaba después y quedaba pegado en una fila que terminó
+ * como la persona quería.
  */
 function useMarcar(item: ItemVista) {
-  const [comprado, setComprado] = useOptimistic(item.comprado)
-  const [, iniciar] = useTransition()
+  const [pedido, setPedido] = useState<boolean | null>(null)
+  const [enVuelo, setEnVuelo] = useState(0)
   const [aviso, setAviso] = useState<Aviso | null>(null)
   const ultimo = useRef(0)
+
+  // Cada render del servidor trae un `item` nuevo. Es el patrón de React para
+  // ajustar estado cuando cambia una prop, sin un efecto que pinte dos veces.
+  const [visto, setVisto] = useState(item)
+  if (visto !== item) {
+    setVisto(item)
+    if (enVuelo === 0) setPedido(null)
+  }
+
+  const comprado = pedido ?? item.comprado
 
   function alternar() {
     const comprar = !comprado
     const intento = ++ultimo.current
     const verbo = comprar ? 'marcar' : 'desmarcar'
-    setAviso(null)
 
-    iniciar(async () => {
-      setComprado(comprar)
-      try {
-        const resultado = await marcarComprado(item.id, comprar)
-        if (resultado.error && intento === ultimo.current) setAviso({ texto: resultado.error })
-      } catch (e) {
+    setAviso(null)
+    setPedido(comprar)
+    setEnVuelo((n) => n + 1)
+
+    marcarComprado(item.id, comprar)
+      .then((resultado) => {
+        if (resultado.error && intento === ultimo.current) {
+          setPedido(null)
+          setAviso({ texto: resultado.error })
+        }
+      })
+      .catch((e: unknown) => {
         const fallo = avisoDeFallo(e, verbo)
-        if (intento === ultimo.current) setAviso(fallo)
-      }
-    })
+        if (fallo && intento === ultimo.current) {
+          setPedido(null)
+          setAviso(fallo)
+        }
+      })
+      .finally(() => setEnVuelo((n) => n - 1))
   }
 
   return { comprado, alternar, aviso }

@@ -1,10 +1,11 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useState } from 'react'
 
 import { Alert } from '@/components/ui/alert'
 
-import { agregarItem, type EstadoCompras } from './acciones'
+import { agregarItem } from './acciones'
+import { avisoDeFallo, type Aviso } from './fallo'
 
 /**
  * Alta rápida: un campo y listo. Cae en la tienda predeterminada y sin
@@ -15,25 +16,59 @@ import { agregarItem, type EstadoCompras } from './acciones'
  * Va anclada al pie, sobre la barra de tabs: es la acción que más se
  * repite y la única que se hace con una mano en el super. Arriba
  * empujaba la lista hacia abajo y quedaba fuera de alcance del pulgar.
+ *
+ * El envío va con `onSubmit` y estado propio, no con `useActionState`: esa
+ * corre la acción en una transición async, y mientras dura, React no aplica
+ * ninguna otra, tampoco la navegación de las tabs que están justo abajo. Ver
+ * `useMarcar` en `fila-item.tsx`. De paso, un fallo de red ya no tumba la
+ * pantalla al `error.tsx`: se muestra acá.
  */
 export function AgregarItem() {
   const [texto, setTexto] = useState('')
+  const [pendiente, setPendiente] = useState(false)
+  const [aviso, setAviso] = useState<Aviso | null>(null)
 
-  const [estado, accion, pendiente] = useActionState<EstadoCompras, FormData>(
-    async (previo, formData) => {
-      const resultado = await agregarItem(previo, formData)
-      if (!resultado.error) setTexto('')
-      return resultado
-    },
-    {},
-  )
+  async function enviar(evento: React.FormEvent<HTMLFormElement>) {
+    evento.preventDefault()
+    if (pendiente) return
+
+    const formData = new FormData(evento.currentTarget)
+    setPendiente(true)
+    setAviso(null)
+    try {
+      const resultado = await agregarItem({}, formData)
+      if (resultado.error) setAviso({ texto: resultado.error })
+      else setTexto('')
+    } catch (e) {
+      setAviso(avisoDeFallo(e, 'agregar'))
+    } finally {
+      setPendiente(false)
+    }
+  }
 
   return (
     // Sin fondo ni borde propios: los pone `AccionDePie`, a todo el ancho.
     <div className="flex flex-col gap-2 px-4 py-3">
-      {estado.error ? <Alert tono="error">{estado.error}</Alert> : null}
+      {aviso ? (
+        // «Recargar» va al lado y no adentro: sobre el tinte rojo de la alerta,
+        // el terracota no tiene par verificado en `npm run contraste`.
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <Alert tono="error">{aviso.texto}</Alert>
+          </div>
+          {aviso.recargar ? (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="min-h-touch text-marca shrink-0 text-base font-semibold"
+            >
+              Recargar
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
-      <form action={accion} className="flex gap-2">
+      <form onSubmit={enviar} className="flex gap-2">
         <label htmlFor="producto" className="sr-only">
           Qué hay que comprar
         </label>
