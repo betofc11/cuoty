@@ -53,11 +53,11 @@ Romper cualquiera de estas es un bug, aunque el código compile.
   (Las migraciones viven en Supabase, no hay archivos en `supabase/migrations/`.)
 - **Íconos siempre con texto al lado.** Un ícono va solo únicamente si cumple las
   tres: forma convencional (engranaje, más, embudo), `aria-label` propio, y sitio
-  donde no queda espacio para la palabra. Hoy son cuatro: la tuerca del selector
-  de casas, el `+` de la barra de alta de Compras, y el embudo de «Filtros» y la
-  escoba de «Limpiar» cuando la fila de filtros está colapsada — esos dos además
-  muestran su palabra al expandirse. Si vas a agregar un quinto, primero probá si
-  cabe el texto.
+  donde no queda espacio para la palabra. Hoy son dos: la tuerca del selector de
+  casas y el `+` de la barra de alta de Compras. El embudo y la escoba de los
+  filtros de Compras se fueron en la fase 2 del rediseño: las tiendas pasaron a
+  chips a la vista y las etiquetas a un botón con su palabra. Si vas a agregar
+  un tercero, primero probá si cabe el texto.
 - Target táctil mínimo 48×48 (`min-h-touch`). Tipografía base 16px, no bajar.
 - **Contraste: todo texto pasa 4,5:1 y todo borde de campo 3:1, en los dos temas.**
   `npm run contraste` lo verifica leyendo `app/globals.css`; si agregás un par de
@@ -117,11 +117,25 @@ Fase 1, hecha:
 - `marcarComprado` devuelve el error en vez de tragárselo. La fila lo muestra y la
   tilde se revierte sola.
 
+Fase 2, hecha (filtrar por la tienda donde estás):
+- **Chips de tienda a la vista**, en un `Carrusel`: «Todo» primero, después cada
+  tienda con lo pendiente propio. La predeterminada no lleva chip. El chip elegido
+  se trae a la vista: al final de la fila quedaba tapado contra el borde.
+- **Elegir una tienda suma lo de «Cualquiera»** (`enLaTienda` en
+  `lib/compras/consultas.ts`): antes el filtro lo escondía, y en la casa real era
+  la mayoría de lo pendiente. Lo de las demás tiendas queda plegado en «En otras
+  tiendas» (`partirPorTienda` en `lib/compras/grupos.ts`), no escondido. La tienda
+  y la etiqueta de la URL se validan contra las de la casa.
+- **Etiquetas en una `<Hoja>`** (`app/compras/filtro-etiquetas.tsx`), detrás de un
+  botón «Etiquetas» fijo a la derecha. Con una puesta, el botón cede su lugar al
+  chip de esa etiqueta, en su tono y con su ×.
+- Tres vacíos: «Ya está todo comprado», «Nada pendiente con esos filtros» y
+  «Nada pendiente en Walmart» (cuando lo que falta es de otras tiendas).
+- Los enlaces del pie pasaron a «Editar etiquetas» y «Editar tiendas»: el botón de
+  filtrar ya se llama «Etiquetas», y dos controles con el mismo nombre que hacen
+  cosas distintas no se distinguen.
+
 Fases que faltan, con el usuario ya de acuerdo:
-2. **Filtrar por la tienda donde estás.** Chips de tienda a la vista, sin embudo.
-   Elegir una tienda muestra lo suyo **más lo de «Cualquiera»**: hoy el filtro lo
-   esconde, y era la mayoría de lo pendiente. Etiquetas en una `<Hoja>`. Se van el
-   embudo y la escoba (los íconos solos bajan a dos).
 3. **Editar en una `<Hoja>`** que guarda cada campo al tocarlo, con la tienda en
    chips. Después de anotar, una tira «¿Dónde se compra?» de un toque (82 % de los
    items de la casa real terminaban movidos a mano a una tienda). Aviso de
@@ -301,8 +315,15 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   `npx playwright install chromium`. En el contenedor de la nube ya está.
 - `tests/e2e/navegacion.spec.ts` es el guardia de la barra de pestañas: prueba
   cada pestaña desde cada pantalla y también **con una acción en vuelo**, que es
-  como se rompió. Lo de Compras (marcar, deshacer, fallos, sin señal) está en
-  `compras.spec.ts`.
+  como se rompió, y **un rato después de cargar Compras**, que es como se rompió
+  la segunda vez. Lo de Compras (marcar, deshacer, fallos, sin señal) está en
+  `compras.spec.ts`, y los filtros por tienda y etiqueta en `filtros.spec.ts`.
+- **Para cortar los servidores de prueba, buscá por nombre de proceso**
+  (`ps -eo pid,comm`, el que se llama `next-server`), nunca con `pkill -f`: el
+  patrón también aparece en la línea de comando de tu propia terminal y te la
+  corta. Y si un `next-server` viejo queda vivo mientras recompilás, sigue
+  sirviendo con el `.next` nuevo por debajo y la página revienta en «Algo se
+  rompió»: parece un bug de la app y no lo es.
 
 ## Cómo trabajar acá
 
@@ -428,6 +449,16 @@ el proyecto real, así que se puede correr en la nube y con sesión.
 
   Sin el claim, `app.is_house_admin` da false y `close_period` levanta 42501. Para la
   autoría alcanza `cuoty.actor_id`, que `current_actor()` mira antes que `auth.uid()`.
+- **Un efecto sin dependencias que llama a `setState` es un bucle esperando a
+  pasar.** El `Carrusel` de Compras medía su scroll en `useEffect(medir)`, que corre
+  después de cada render, y `medir` llamaba a `setLados` con un updater que
+  devolvía el mismo objeto si nada cambiaba. Igual, en dos de cada tres cargas
+  entraba en un bucle de unos 3.800 renders por segundo que no cambiaba nada en
+  pantalla y no dejaba a React terminar ninguna transición: las pestañas no
+  navegaban desde Compras. Se midió, no se dedujo (un contador en el render y otro
+  en `medir`). En la fase 1 no se notaba porque el carrusel casi nunca se mostraba.
+  Ahora mide en un solo efecto con observadores (scroll, `ResizeObserver`,
+  `MutationObserver`) y compara contra una ref **antes** de llamar a `setLados`.
 - **Una transición async congela las pestañas.** React junta todas las
   transiciones en curso: mientras una espera al servidor, no aplica ninguna otra,
   y la navegación de Next es una transición. `useOptimistic`, `useActionState` y
@@ -441,6 +472,8 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   pedido ya salió y el servidor lo termina («The destination stream closed early»
   en el log es eso, no un error). «Quitar los comprados» sigue como `<form action>`
   a propósito: es en bloque y uno espera a que termine.
+- **Nunca hagas `git checkout CLAUDE.md` para limpiar algo**: se lleva también lo
+  que escribiste y todavía no commiteaste. Ya pasó una vez.
 - **`next dev` 16.3 agrega un bloque de reglas al final de CLAUDE.md** (el de
   «nextjs-agent-rules», entre dos comentarios HTML) cada vez que arranca. Está
   apagado con `agentRules: false` en `next.config.ts`, a pedido del usuario: no lo
@@ -497,7 +530,7 @@ El plan de la revisión de diseño (octubre de 2026) está completo en sus cuatr
 fases: contraste y color, el marco en el iPhone, jerarquía y textos, e identidad.
 Lo que salió de ahí está en «Diseños» y en «El marco».
 
-El rediseño de Compras va por la fase 1 de cinco: ver «Compras» en «Diseños».
+El rediseño de Compras va por la fase 2 de cinco: ver «Compras» en «Diseños».
 
 Pendiente:
 - **Foto de perfil.** `profiles.avatar_url` existe y Google la llena, pero el shell

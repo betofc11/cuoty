@@ -40,6 +40,25 @@ for (const desde of PANTALLAS) {
   }
 }
 
+/*
+  Se rompió por segunda vez sin tocar la barra: el carrusel de tiendas de
+  Compras entraba en un bucle de renders que no cambiaba nada en pantalla, y
+  React nunca terminaba la navegación. Tocando apenas cargaba la página a veces
+  zafaba; esperando un rato, fallaba siempre que el bucle arrancaba, que era en
+  unas dos de cada tres cargas. Por eso la espera, y por eso tres vueltas.
+*/
+test('desde Compras, las pestañas siguen andando un rato después de cargar', async ({ page }) => {
+  for (let vuelta = 0; vuelta < 3; vuelta++) {
+    await page.goto('/compras')
+    await expect(page.getByRole('navigation', { name: 'Filtrar por tienda' })).toBeVisible()
+    await page.waitForTimeout(1_500)
+
+    await pestana(page, 'Gastos').tap()
+
+    await expect(titulo(page)).toHaveText('Gastos', { timeout: AL_TOQUE })
+  }
+})
+
 test('se puede recorrer la barra entera de ida y vuelta', async ({ page }) => {
   await page.goto('/')
   for (const p of [...PANTALLAS.slice(1), ...PANTALLAS.slice().reverse()]) {
