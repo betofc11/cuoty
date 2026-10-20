@@ -20,6 +20,7 @@ import { AgregarItem } from '@/app/compras/agregar'
 import { Buscador } from '@/app/compras/buscador'
 import { Carrusel } from '@/app/compras/carrusel'
 import { CHIP, CHIP_APAGADO, CHIP_ELEGIDO } from '@/app/compras/chips'
+import { EditorDeItems } from '@/app/compras/editor-de-item'
 import { FilaComprada, FilaItem } from '@/app/compras/fila-item'
 import { FiltroEtiquetas } from '@/app/compras/filtro-etiquetas'
 import { RealtimeCompras } from '@/app/compras/realtime'
@@ -198,7 +199,11 @@ export default async function ComprasPage({
       {/* El alta va sobre las tabs, al alcance del pulgar: es lo que más se
           repite y se hace con una mano en el súper. */}
       <AccionDePie>
-        <AgregarItem />
+        <AgregarItem
+          tiendas={vista.todasLasTiendas.filter((t) => !t.esPredeterminada)}
+          tiendaElegida={elegida ? { id: elegida.id, nombre: elegida.nombre } : null}
+          pendientes={vista.nombresPendientes}
+        />
       </AccionDePie>
 
       <div className="flex flex-col gap-4">
@@ -330,93 +335,98 @@ export default async function ComprasPage({
           )
         ) : null}
 
-        {/* Un grupo por tienda, con «Cualquiera» al final: la tienda se dice
-            una vez y no en cada fila. */}
-        {aLaVista.map((g) => (
-          <GrupoDeTienda key={g.tienda.id} grupo={g} />
-        ))}
+        {/* Una sola hoja de edición para toda la lista: «Editar» en cualquier
+            fila la abre con ese item. No agrega ningún elemento al flujo de la
+            página, así que no rompe el espaciado de la columna. */}
+        <EditorDeItems tiendas={vista.todasLasTiendas} etiquetas={vista.todasLasEtiquetas}>
+          {/* Un grupo por tienda, con «Cualquiera» al final: la tienda se dice
+              una vez y no en cada fila. */}
+          {aLaVista.map((g) => (
+            <GrupoDeTienda key={g.tienda.id} grupo={g} />
+          ))}
 
-        {/* Con una tienda elegida, lo de las demás no se esconde: queda
-            plegado, por si lo que falta en otra también lo hay acá. */}
-        {otras.length > 0 ? (
-          <details className="group">
-            <summary
-              className="min-h-touch border-borde bg-superficie-alta text-tinta flex cursor-pointer items-center
-                         justify-between gap-3 rounded-2xl border px-4 text-base font-semibold"
-            >
-              En otras tiendas
-              <span className="text-tinta-suave flex items-center gap-3 font-normal">
-                <span aria-hidden="true" className="text-sm">
-                  {enOtras}
-                </span>
-                <span className="sr-only">, {pendientes(enOtras)}</span>
-                <span aria-hidden="true" className="transition group-open:rotate-180">
-                  ▾
-                </span>
-              </span>
-            </summary>
-            <div className="flex flex-col gap-4 pt-4">
-              {otras.map((g) => (
-                <GrupoDeTienda key={g.tienda.id} grupo={g} />
-              ))}
-            </div>
-          </details>
-        ) : null}
-
-        {/* Lo marcado hoy no se va de la pantalla: si al tocar la casilla el
-            item desapareciera, deshacer un toque errado obligaría a abrir el
-            acordeón. Lo último que se marcó va primero. */}
-        {vista.compradosHoy.length > 0 ? (
-          <Grupo
-            id="grupo-comprado-hoy"
-            titulo="Comprado hoy"
-            cuenta={vista.compradosHoy.length}
-            cuentaLarga={`${vista.compradosHoy.length} ${
-              vista.compradosHoy.length === 1 ? 'item' : 'items'
-            }`}
-          >
-            {vista.compradosHoy.map((item) => (
-              <FilaComprada
-                key={item.id}
-                item={item}
-                marca={item.compradoPor ? { previo: ', lo marcó ', texto: item.compradoPor } : null}
-              />
-            ))}
-          </Grupo>
-        ) : null}
-
-        {vista.compradosAntes.length > 0 ? (
-          <details className="border-borde bg-superficie-alta group rounded-2xl border">
-            <summary className="min-h-touch text-tinta flex cursor-pointer items-center justify-between px-4 text-base font-semibold">
-              Ver artículos comprados ({vista.compradosAntes.length})
-              <span
-                aria-hidden="true"
-                className="text-tinta-suave transition group-open:rotate-180"
+          {/* Con una tienda elegida, lo de las demás no se esconde: queda
+              plegado, por si lo que falta en otra también lo hay acá. */}
+          {otras.length > 0 ? (
+            <details className="group">
+              <summary
+                className="min-h-touch border-borde bg-superficie-alta text-tinta flex cursor-pointer items-center
+                           justify-between gap-3 rounded-2xl border px-4 text-base font-semibold"
               >
-                ▾
-              </span>
-            </summary>
-            {/* El recorte va en la lista y no en el `<details>`: ahí cortaba
-                el anillo de foco del `<summary>`. Sin recorte, la última fila
-                presionada pintaba esquinas cuadradas sobre la tarjeta. */}
-            <ul className="border-borde-suave divide-borde-suave divide-y overflow-hidden rounded-b-2xl border-t">
-              {vista.compradosAntes.map((item) => (
+                En otras tiendas
+                <span className="text-tinta-suave flex items-center gap-3 font-normal">
+                  <span aria-hidden="true" className="text-sm">
+                    {enOtras}
+                  </span>
+                  <span className="sr-only">, {pendientes(enOtras)}</span>
+                  <span aria-hidden="true" className="transition group-open:rotate-180">
+                    ▾
+                  </span>
+                </span>
+              </summary>
+              <div className="flex flex-col gap-4 pt-4">
+                {otras.map((g) => (
+                  <GrupoDeTienda key={g.tienda.id} grupo={g} />
+                ))}
+              </div>
+            </details>
+          ) : null}
+
+          {/* Lo marcado hoy no se va de la pantalla: si al tocar la casilla el
+              item desapareciera, deshacer un toque errado obligaría a abrir el
+              acordeón. Lo último que se marcó va primero. */}
+          {vista.compradosHoy.length > 0 ? (
+            <Grupo
+              id="grupo-comprado-hoy"
+              titulo="Comprado hoy"
+              cuenta={vista.compradosHoy.length}
+              cuentaLarga={`${vista.compradosHoy.length} ${
+                vista.compradosHoy.length === 1 ? 'item' : 'items'
+              }`}
+            >
+              {vista.compradosHoy.map((item) => (
                 <FilaComprada
                   key={item.id}
                   item={item}
-                  editable
-                  // La fecha relativa sale del servidor: calculada en el
-                  // cliente, una página guardada de otro día no hidrataba.
-                  marca={
-                    item.compradoEl
-                      ? { previo: ', comprado ', texto: fechaCorta(item.compradoEl) }
-                      : null
-                  }
+                  marca={item.compradoPor ? { previo: ', lo marcó ', texto: item.compradoPor } : null}
                 />
               ))}
-            </ul>
-          </details>
-        ) : null}
+            </Grupo>
+          ) : null}
+
+          {vista.compradosAntes.length > 0 ? (
+            <details className="border-borde bg-superficie-alta group rounded-2xl border">
+              <summary className="min-h-touch text-tinta flex cursor-pointer items-center justify-between px-4 text-base font-semibold">
+                Ver artículos comprados ({vista.compradosAntes.length})
+                <span
+                  aria-hidden="true"
+                  className="text-tinta-suave transition group-open:rotate-180"
+                >
+                  ▾
+                </span>
+              </summary>
+              {/* El recorte va en la lista y no en el `<details>`: ahí cortaba
+                  el anillo de foco del `<summary>`. Sin recorte, la última fila
+                  presionada pintaba esquinas cuadradas sobre la tarjeta. */}
+              <ul className="border-borde-suave divide-borde-suave divide-y overflow-hidden rounded-b-2xl border-t">
+                {vista.compradosAntes.map((item) => (
+                  <FilaComprada
+                    key={item.id}
+                    item={item}
+                    editable
+                    // La fecha relativa sale del servidor: calculada en el
+                    // cliente, una página guardada de otro día no hidrataba.
+                    marca={
+                      item.compradoEl
+                        ? { previo: ', comprado ', texto: fechaCorta(item.compradoEl) }
+                        : null
+                    }
+                  />
+                ))}
+              </ul>
+            </details>
+          ) : null}
+        </EditorDeItems>
 
         {/* Archiva TODO lo comprado de la casa, no solo lo que se está
             viendo: por eso el número es el total y no el de la vista. */}

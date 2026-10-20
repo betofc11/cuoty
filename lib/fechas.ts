@@ -87,13 +87,10 @@ export function fechaCorta(iso: string): string {
   const ayer = new Date(hoy.getTime() - 86_400_000)
   if (dia === diaCR(ayer)) return 'Ayer'
 
-  return new Intl.DateTimeFormat('es-CR', {
-    timeZone: ZONA,
-    day: 'numeric',
-    month: 'short',
-  })
-    .format(fecha)
-    .replace('.', '')
+  // Día y mes de CR, y el mes abreviado a mano: el `month: 'short'` del Intl
+  // daba «sept» (y cada motor abrevia distinto), y acá es «setiembre».
+  const [, mes, numero] = dia.split('-')
+  return `${Number(numero)} ${MESES[Number(mes) - 1]?.slice(0, 3) ?? ''}`
 }
 
 /**

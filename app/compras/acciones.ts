@@ -6,7 +6,12 @@ import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth/session'
 import { contextoDeCasa } from '@/lib/casas/activa'
 
-export type EstadoCompras = { error?: string; ok?: string }
+export type EstadoCompras = {
+  error?: string
+  ok?: string
+  /** El item recién creado: la tira «¿Dónde se compra?» lo mueve con un toque. */
+  itemId?: string
+}
 
 /** Un solo lugar donde se decide qué se le muestra al usuario ante un fallo. */
 function fallo(mensaje: string): EstadoCompras {
@@ -48,7 +53,11 @@ export async function agregarItem(
   const { supabase } = await requireUser()
   const { activa } = await contextoDeCasa()
 
-  const { error } = await supabase.rpc('add_shopping_item', {
+  // La tienda llega del cliente («Agregar a Walmart»): se confirma que sea de
+  // esta casa. `add_shopping_item` no lo mira.
+  if (tiendaId && !(await tiendaDeLaCasa(tiendaId))) return fallo('Esa tienda ya no existe.')
+
+  const { data: itemId, error } = await supabase.rpc('add_shopping_item', {
     p_house_id: activa.id,
     p_name: nombre,
     p_store_id: tiendaId ?? undefined,
@@ -60,7 +69,7 @@ export async function agregarItem(
   if (error) return fallo(error.message)
 
   refrescar()
-  return { ok: `Se agregó ${nombre}.` }
+  return { ok: `Se agregó ${nombre}.`, itemId: itemId ?? undefined }
 }
 
 /**
@@ -114,6 +123,131 @@ export async function alternarComprado(formData: FormData): Promise<void> {
     String(formData.get('itemId') ?? ''),
     String(formData.get('comprar') ?? '') === 'si',
   )
+}
+
+// ────────────────────── edición desde la hoja, campo por campo ──────────────────────
+//
+// La hoja de `editor-de-item.tsx` guarda cada campo al tocarlo, sin «Guardar
+// cambios». Todas se llaman como función, fuera de toda transición: ver
+// «Una transición async congela las pestañas» en CLAUDE.md.
+
+/** Los topes de la hoja. La base no tiene, pero una nota de tres párrafos no es una nota. */
+const LARGO_CANTIDAD = 40
+const LARGO_NOTA = 200
+
+/** ¿La tienda es de la casa activa? Las de otras casas las ve RLS si sos miembro de las dos. */
+async function tiendaDeLaCasa(tiendaId: string): Promise<boolean> {
+  const { supabase } = await requireUser()
+  const { activa } = await contextoDeCasa()
+  const { data } = await supabase
+    .from('stores')
+    .select('id')
+    .eq('id', tiendaId)
+    .eq('house_id', activa.id)
+    .maybeSingle()
+  return Boolean(data)
+}
+
+/**
+ * Un cambio a un item que sigue en la lista. Sin filas es que alguien lo borró
+ * o lo archivó mientras tanto, y eso se dice así y no como «Probá de nuevo».
+ */
+async function actualizarItem(
+  itemId: string,
+  cambios: { store_id?: string; quantity?: string | null; note?: string | null },
+): Promise<EstadoCompras> {
+  if (!itemId) return fallo('No encontramos ese item.')
+
+  const { supabase } = await requireUser()
+  const { data, error } = await supabase
+    .from('shopping_items')
+    .update(cambios)
+    .eq('id', itemId)
+    .is('archived_at', null)
+    .select('id')
+
+  refrescar(itemId)
+
+  if (error) {
+    console.error('[cuoty] compras:', error.message)
+    return fallo('No se pudo guardar. Probá de nuevo.')
+  }
+  if (!data?.length) return fallo('Ese item ya no está en la lista.')
+  return {}
+}
+
+export async function moverDeTienda(itemId: string, tiendaId: string): Promise<EstadoCompras> {
+  if (!(await tiendaDeLaCasa(tiendaId))) return fallo('Esa tienda ya no existe.')
+  return actualizarItem(itemId, { store_id: tiendaId })
+}
+
+export async function cambiarCantidad(itemId: string, cantidad: string): Promise<EstadoCompras> {
+  const limpia = cantidad.replace(/\s+/g, ' ').trim()
+  if (limpia.length > LARGO_CANTIDAD) {
+    return fallo(`La cantidad es muy larga (máximo ${LARGO_CANTIDAD}).`)
+  }
+  return actualizarItem(itemId, { quantity: limpia || null })
+}
+
+export async function cambiarNota(itemId: string, nota: string): Promise<EstadoCompras> {
+  const limpia = nota.trim()
+  if (limpia.length > LARGO_NOTA) return fallo(`La nota es muy larga (máximo ${LARGO_NOTA}).`)
+  return actualizarItem(itemId, { note: limpia || null })
+}
+
+/**
+ * Las etiquetas se reemplazan enteras: comparar cuáles entraron y cuáles
+ * salieron cuesta más que rehacerlas, y son tres filas. Solo pasan las de la
+ * casa activa.
+ */
+export async function cambiarEtiquetas(itemId: string, tagIds: string[]): Promise<EstadoCompras> {
+  if (!itemId) return fallo('No encontramos ese item.')
+
+  const { supabase } = await requireUser()
+  const { activa } = await contextoDeCasa()
+
+  const { data: deLaCasa } = await supabase
+    .from('tags')
+    .select('id')
+    .eq('house_id', activa.id)
+    .in('id', tagIds)
+  const validas = (deLaCasa ?? []).map((t) => t.id)
+
+  const { error: errorBorrar } = await supabase.from('item_tags').delete().eq('item_id', itemId)
+  const { error: errorPoner } = validas.length
+    ? await supabase
+        .from('item_tags')
+        .insert(validas.map((tagId) => ({ item_id: itemId, tag_id: tagId })))
+    : { error: null }
+
+  refrescar(itemId)
+
+  const error = errorBorrar ?? errorPoner
+  if (error) {
+    console.error('[cuoty] compras:', error.message)
+    return fallo('No se pudieron guardar las etiquetas. Probá de nuevo.')
+  }
+  return {}
+}
+
+/**
+ * Borrar desde la hoja. A diferencia de `borrarItem`, no redirige: la hoja se
+ * cierra y la lista se refresca sola. El item no lleva contabilidad, así que
+ * acá sí se borra de verdad (invariante 10).
+ */
+export async function borrarDeLaLista(itemId: string): Promise<EstadoCompras> {
+  if (!itemId) return fallo('No encontramos ese item.')
+
+  const { supabase } = await requireUser()
+  const { error } = await supabase.from('shopping_items').delete().eq('id', itemId)
+
+  refrescar()
+
+  if (error) {
+    console.error('[cuoty] compras:', error.message)
+    return fallo('No se pudo borrar. Probá de nuevo.')
+  }
+  return {}
 }
 
 export async function editarItem(

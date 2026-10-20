@@ -24,6 +24,8 @@ export type ItemVista = {
   tienda: TiendaVista
   tags: TagVista[]
   agregadoPor: string
+  /** Cuándo se anotó: lo dice la hoja de edición, no la fila. */
+  agregadoEl: string
   compradoPor: string | null
   compradoEl: string | null
   fotos: number
@@ -51,6 +53,14 @@ export type VistaCompras = {
   tiendas: TiendaConteo[]
   /** Solo las etiquetas que algún pendiente a la vista usa, más la elegida. */
   tags: TagConteo[]
+  /**
+   * Todas las tiendas y etiquetas de la casa, sin filtrar por uso: la hoja de
+   * edición ofrece cualquiera, no solo las que ya tienen algo.
+   */
+  todasLasTiendas: TiendaVista[]
+  todasLasEtiquetas: TagVista[]
+  /** Los nombres de todo lo pendiente, sin filtros: para avisar «Ya está en la lista». */
+  nombresPendientes: string[]
   /** Conteos de la casa entera: no los toca ningún filtro. */
   totalPendientes: number
   totalComprados: number
@@ -163,6 +173,7 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
       tienda,
       tags: (tagsPorItem.get(i.id) ?? []).sort((a, b) => a.nombre.localeCompare(b.nombre)),
       agregadoPor: (i.added_by && nombrePersona.get(i.added_by)) || 'Alguien',
+      agregadoEl: i.created_at,
       compradoPor: (i.purchased_by && nombrePersona.get(i.purchased_by)) || null,
       compradoEl: i.purchased_at,
       fotos: fotosPorItem.get(i.id) ?? 0,
@@ -237,6 +248,9 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
     compradosHoy: compradosFiltrados.filter((i) => i.compradoEl && esHoyCR(i.compradoEl)),
     compradosAntes: compradosFiltrados.filter((i) => !i.compradoEl || !esHoyCR(i.compradoEl)),
     tiendas: conteoTiendas,
+    todasLasTiendas: tiendas,
+    todasLasEtiquetas: tags,
+    nombresPendientes: sinComprar.map((i) => i.producto),
     tags: tagsEnUso,
     totalPendientes: pendientes,
     totalComprados: comprados,
@@ -255,7 +269,7 @@ export async function detalleDeItem(itemId: string): Promise<DetalleItem | null>
   const { data: item } = await supabase
     .from('shopping_items')
     .select(
-      'id, product_id, store_id, quantity, note, status, added_by, purchased_by, purchased_at',
+      'id, product_id, store_id, quantity, note, status, added_by, purchased_by, purchased_at, created_at',
     )
     .eq('id', itemId)
     .eq('house_id', activa.id)
@@ -307,6 +321,7 @@ export async function detalleDeItem(itemId: string): Promise<DetalleItem | null>
     tienda: { id: tienda.id, nombre: tienda.name, esPredeterminada: tienda.is_default },
     tags,
     agregadoPor: (item.added_by && nombrePersona.get(item.added_by)) || 'Alguien',
+    agregadoEl: item.created_at,
     compradoPor: (item.purchased_by && nombrePersona.get(item.purchased_by)) || null,
     compradoEl: item.purchased_at,
     fotos: (fotos ?? []).length,
