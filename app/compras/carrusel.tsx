@@ -1,16 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /** Ancho del difuminado de los bordes, en px. */
 const DESVANECIDO = 24
 
 /**
  * La máscara se arma según haya scroll para un lado, para el otro o para
- * los dos. Va como `mask-image` y no como un degradado encima: el carrusel
- * aparece sobre el fondo de la página y también sobre el panel de filtros,
- * que tienen colores distintos, y la máscara desvanece el CONTENIDO sin
- * que haya que saber contra qué fondo está.
+ * los dos. Va como `mask-image` y no como un degradado encima: la máscara
+ * desvanece el CONTENIDO sin que haya que saber contra qué fondo está, y el
+ * fondo cambia con el tema.
  */
 function mascara(izq: boolean, der: boolean): string | undefined {
   if (!izq && !der) return undefined
@@ -44,43 +43,79 @@ export function Carrusel({
 }) {
   const ref = useRef<HTMLElement>(null)
   const [lados, setLados] = useState({ izq: false, der: false })
+  // Lo último que se le pidió a React que pinte.
+  const pintado = useRef(lados)
 
-  const medir = useCallback(() => {
-    const el = ref.current
-    if (!el) return
+  /*
+    Se mide en un solo efecto y con observadores, NUNCA en un efecto sin
+    dependencias. Antes era `useEffect(medir)`, que corre después de cada
+    render, con un `setLados` que devolvía el mismo objeto si nada cambiaba.
+    En algunas cargas eso entró en un bucle de ~3.800 renders por segundo que
+    no cambiaba nada en pantalla, pero no dejaba a React terminar ninguna
+    transición: tocar una pestaña no navegaba. `tests/e2e/navegacion.spec.ts`
+    lo prueba desde Compras.
 
-    const max = el.scrollWidth - el.clientWidth
-    // 1px de tolerancia: con zoom o en pantallas de densidad fraccionaria,
-    // `scrollLeft` nunca llega a ser exactamente igual al máximo.
-    const izq = el.scrollLeft > 1
-    const der = el.scrollLeft < max - 1
-
-    // Devolver el MISMO objeto cuando no cambió nada no es un detalle: el
-    // efecto de abajo corre en cada render, y un objeto nuevo — aunque
-    // tenga los mismos valores — vuelve a renderizar y se realimenta.
-    setLados((previo) =>
-      previo.izq === izq && previo.der === der ? previo : { izq, der },
-    )
-  }, [])
-
-  // Sin arreglo de dependencias, a propósito: los chips cambian cuando
-  // cambian los filtros, y eso el ResizeObserver no lo ve — solo mira el
-  // ancho de la caja, que no se mueve.
-  useEffect(medir)
-
+    Y la comparación va contra una ref, antes de llamar a `setLados`: sin
+    cambio, no se le pide nada a React.
+  */
   useEffect(() => {
     const el = ref.current
     if (!el) return
 
+    const medir = () => {
+      const max = el.scrollWidth - el.clientWidth
+      // 1px de tolerancia: con zoom o en pantallas de densidad fraccionaria,
+      // `scrollLeft` nunca llega a ser exactamente igual al máximo.
+      const izq = el.scrollLeft > 1
+      const der = el.scrollLeft < max - 1
+
+      if (pintado.current.izq === izq && pintado.current.der === der) return
+      pintado.current = { izq, der }
+      setLados(pintado.current)
+    }
+
+    // El chip elegido tiene que verse: con «Walmart» al final de la fila, la
+    // tienda elegida quedaba tapada contra el borde y no se sabía cuál era.
+    // Se trae a la vista, fuera del difuminado, sin mover la página.
+    const mostrarElegido = () => {
+      const elegido = el.querySelector<HTMLElement>('[aria-current="true"]')
+      if (!elegido) return
+      const caja = el.getBoundingClientRect()
+      const chip = elegido.getBoundingClientRect()
+      if (chip.right > caja.right - DESVANECIDO) {
+        el.scrollLeft += chip.right - caja.right + DESVANECIDO
+      } else if (chip.left < caja.left + DESVANECIDO) {
+        el.scrollLeft -= caja.left + DESVANECIDO - chip.left
+      }
+    }
+
+    mostrarElegido()
+    medir()
     el.addEventListener('scroll', medir, { passive: true })
-    const observador = new ResizeObserver(medir)
-    observador.observe(el)
+    // El ancho de la caja: girar el teléfono, cambiar el tamaño de letra.
+    const caja = new ResizeObserver(medir)
+    caja.observe(el)
+    // Los chips cambian con los filtros, y eso el ResizeObserver no lo ve
+    // porque la caja no cambia de ancho. De los atributos, solo
+    // `aria-current`: la máscara es un atributo de la propia caja, y
+    // observarla realimentaría.
+    const chips = new MutationObserver(() => {
+      mostrarElegido()
+      medir()
+    })
+    chips.observe(el, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributeFilter: ['aria-current'],
+    })
 
     return () => {
       el.removeEventListener('scroll', medir)
-      observador.disconnect()
+      caja.disconnect()
+      chips.disconnect()
     }
-  }, [medir])
+  }, [])
 
   const capa = mascara(lados.izq, lados.der)
 

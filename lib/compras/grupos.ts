@@ -36,3 +36,22 @@ export function agruparPorTienda(items: ItemVista[]): GrupoTienda[] {
     return a.tienda.nombre.localeCompare(b.tienda.nombre, 'es')
   })
 }
+
+/**
+ * Lo pendiente con una tienda elegida («estoy en Walmart»): a la vista, lo de
+ * esa tienda y después lo de la predeterminada, que se consigue en cualquier
+ * lado. Lo de las otras tiendas va aparte, para un acordeón plegado: no se
+ * esconde, porque a veces lo que falta en Automercado también lo hay acá.
+ *
+ * Sin tienda elegida, todo va a la vista.
+ */
+export function partirPorTienda(
+  items: ItemVista[],
+  tiendaId: string | null,
+): { aLaVista: GrupoTienda[]; otras: GrupoTienda[] } {
+  const grupos = agruparPorTienda(items)
+  if (!tiendaId) return { aLaVista: grupos, otras: [] }
+
+  const seVe = (g: GrupoTienda) => g.tienda.id === tiendaId || g.tienda.esPredeterminada
+  return { aLaVista: grupos.filter(seVe), otras: grupos.filter((g) => !seVe(g)) }
+}

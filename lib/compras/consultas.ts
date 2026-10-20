@@ -31,18 +31,26 @@ export type ItemVista = {
 
 /** La tienda con cuántos pendientes tiene: el chip de filtro lleva el número. */
 export type TiendaConteo = TiendaVista & { pendientes: number }
+/** La etiqueta con cuántos pendientes la llevan: la hoja de etiquetas lleva el número. */
+export type TagConteo = TagVista & { pendientes: number }
 
 export type VistaCompras = {
-  /** Pendientes que pasaron el filtro. La página los agrupa por tienda (`lib/compras/grupos.ts`). */
+  /**
+   * Pendientes que pasaron la etiqueta y la búsqueda, de TODAS las tiendas.
+   * La tienda elegida no los recorta acá: la página los parte entre lo que se
+   * ve y «En otras tiendas» (`partirPorTienda` en `lib/compras/grupos.ts`).
+   */
   items: ItemVista[]
+  /** La tienda elegida, ya validada: nunca la predeterminada ni una de otra casa. */
+  tiendaElegida: TiendaConteo | null
   /** Marcados hoy, lo último primero. Quedan a la vista para deshacer el toque. */
   compradosHoy: ItemVista[]
   /** Marcados antes de hoy, lo último primero. Viven en el acordeón del pie. */
   compradosAntes: ItemVista[]
-  /** Solo las tiendas con pendientes, más la que esté filtrada. */
+  /** Las tiendas con pendientes propios, sin la predeterminada, más la elegida. */
   tiendas: TiendaConteo[]
-  /** Solo las etiquetas que algún pendiente usa, más la que esté filtrada. */
-  tags: TagVista[]
+  /** Solo las etiquetas que algún pendiente a la vista usa, más la elegida. */
+  tags: TagConteo[]
   /** Conteos de la casa entera: no los toca ningún filtro. */
   totalPendientes: number
   totalComprados: number
@@ -161,37 +169,57 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
     })
   }
 
-  // Los tres filtros van sueltos: los chips de tienda se cuentan con el
-  // resto puesto pero sin el suyo propio, o «Walmart 4» diría siempre 4
-  // aunque estés viendo Automercado.
-  const porTienda = (i: ItemVista) => !filtros.tienda || i.tienda.id === filtros.tienda
-  const porTag = (i: ItemVista) => !filtros.tag || i.tags.some((t) => t.id === filtros.tag)
+  // Tienda y etiqueta salen de las listas de la casa, no de la URL: un id de
+  // otra casa se ignora. Elegir la predeterminada también: lo de
+  // «Cualquiera» ya aparece con cualquier tienda que elijas.
+  const elegida = tiendas.find((t) => t.id === filtros.tienda && !t.esPredeterminada) ?? null
+  const tagElegida = tags.find((t) => t.id === filtros.tag) ?? null
+
+  // «Estoy en Walmart»: lo de Walmart y lo que se consigue en cualquier
+  // lado. Antes el filtro dejaba afuera lo de «Cualquiera», que en la casa
+  // real era la mayoría de lo pendiente: en el súper escondía justo lo que
+  // se podía comprar ahí.
+  const enLaTienda = (i: ItemVista) =>
+    !elegida || i.tienda.id === elegida.id || i.tienda.esPredeterminada
+  const porTag = (i: ItemVista) => !tagElegida || i.tags.some((t) => t.id === tagElegida.id)
   const porTexto = (i: ItemVista) => {
     if (!filtros.q) return true
     return contiene(i.producto, filtros.q) || (i.nota ? contiene(i.nota, filtros.q) : false)
   }
 
-  const pasaTodo = (i: ItemVista) => porTienda(i) && porTag(i) && porTexto(i)
+  const pasaTodo = (i: ItemVista) => enLaTienda(i) && porTag(i) && porTexto(i)
 
   const sinComprar = vistas.filter((i) => !i.comprado)
   const yaComprados = vistas.filter((i) => i.comprado)
 
+  // Lo pendiente con la etiqueta y la búsqueda puestas, de todas las
+  // tiendas. Los chips de tienda se cuentan sobre esto, sin la tienda
+  // elegida: «Walmart 2» dice cuánto hay de Walmart aunque estés viendo
+  // Automercado.
+  const pendientesFiltrados = sinComprar.filter((i) => porTag(i) && porTexto(i))
+
   const conteoTiendas: TiendaConteo[] = tiendas
+    // La predeterminada no lleva chip: su grupo sale con cualquier tienda.
+    .filter((t) => !t.esPredeterminada)
     .map((t) => ({
       ...t,
-      pendientes: sinComprar.filter(
-        (i) => i.tienda.id === t.id && porTag(i) && porTexto(i),
-      ).length,
+      pendientes: pendientesFiltrados.filter((i) => i.tienda.id === t.id).length,
     }))
     // Una tienda sin nada que comprar no es un filtro, es ruido. La
-    // filtrada se queda aunque llegue a cero: si no, desaparece el único
-    // chip que sirve para volver atrás.
-    .filter((t) => t.pendientes > 0 || t.id === filtros.tienda)
+    // elegida se queda aunque llegue a cero: si no, desaparece su chip
+    // justo cuando terminaste de comprar ahí.
+    .filter((t) => t.pendientes > 0 || t.id === elegida?.id)
 
-  const usadas = new Set(
-    sinComprar.filter((i) => porTienda(i) && porTexto(i)).flatMap((i) => i.tags.map((t) => t.id)),
-  )
-  const tagsEnUso = tags.filter((t) => usadas.has(t.id) || t.id === filtros.tag)
+  // Las etiquetas se cuentan sobre lo que está a la vista (tienda y
+  // búsqueda puestas), sin la etiqueta elegida.
+  const porEtiqueta = new Map<string, number>()
+  for (const i of sinComprar) {
+    if (!enLaTienda(i) || !porTexto(i)) continue
+    for (const t of i.tags) porEtiqueta.set(t.id, (porEtiqueta.get(t.id) ?? 0) + 1)
+  }
+  const tagsEnUso: TagConteo[] = tags
+    .filter((t) => porEtiqueta.has(t.id) || t.id === tagElegida?.id)
+    .map((t) => ({ ...t, pendientes: porEtiqueta.get(t.id) ?? 0 }))
 
   // Lo marcado hoy no se va de la lista: si al tocar la casilla el item
   // desapareciera, deshacer un toque errado obligaría a abrir el acordeón.
@@ -204,7 +232,8 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
     .sort((a, b) => Date.parse(b.compradoEl ?? '') - Date.parse(a.compradoEl ?? ''))
 
   return {
-    items: sinComprar.filter(pasaTodo),
+    items: pendientesFiltrados,
+    tiendaElegida: conteoTiendas.find((t) => t.id === elegida?.id) ?? null,
     compradosHoy: compradosFiltrados.filter((i) => i.compradoEl && esHoyCR(i.compradoEl)),
     compradosAntes: compradosFiltrados.filter((i) => !i.compradoEl || !esHoyCR(i.compradoEl)),
     tiendas: conteoTiendas,
