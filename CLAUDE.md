@@ -174,9 +174,23 @@ Fase 4, hecha (encabezado, buscador y comprados):
   guardaba de otra forma; se fueron con él `editarItem`, `borrarItem` y
   `alternarComprado`.
 
-Fase que falta, con el usuario ya de acuerdo:
-5. Más adelante, con datos: que `add_shopping_item` recuerde la última tienda de
-   cada producto. Hoy casi no se repiten productos y no acertaría.
+Fase 5, hecha (la lista recuerda dónde se compra cada producto):
+- **`add_shopping_item` sin tienda elegida usa la del último item de ese
+  producto en la casa**: la que tiene hoy, aunque lo hayan movido después de
+  anotarlo. Si la última vez quedó en «Cualquiera», queda ahí; sin historial, la
+  predeterminada. La tienda elegida a mano siempre gana. Migración
+  `compras_recordar_tienda`, misma firma: ni los permisos ni los tipos cambian.
+- **La función ahora rechaza una tienda de otra casa** («Esa tienda no es de esta
+  casa.»). Antes solo lo revisaba la acción, y la función se llama directo con la
+  clave pública.
+- **La tira dice dónde quedó**: «Jabón quedó en Walmart, como la última vez. ¿Va
+  en otra?», con las otras tiendas y «Cualquiera». `agregarItem` pregunta la
+  tienda del item recién creado (`tiendaId`), porque la función devuelve solo el
+  id. Así la app anda igual con la función vieja y con la nueva.
+- Se hizo con pocos datos, a propósito: al 20/10/2026 había 50 items y 48
+  productos distintos. Las dos veces que un producto se repitió, la memoria habría
+  acertado. Es barata y no estorba cuando no acierta. Las sugerencias de «lo de
+  siempre» al anotar siguen esperando datos.
 
 ## Auth y correo
 
@@ -352,7 +366,8 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   como se rompió, y **un rato después de cargar Compras**, que es como se rompió
   la segunda vez. Lo de Compras (marcar, deshacer, fallos, sin señal, la sección
   «Comprado» y archivar) está en `compras.spec.ts`, los filtros por tienda y etiqueta en `filtros.spec.ts`, y la
-  hoja de edición, la tira de la tienda y el aviso de duplicado en `edicion.spec.ts`.
+  hoja de edición, la tira de la tienda, la memoria de la tienda (fase 5) y el
+  aviso de duplicado en `edicion.spec.ts`.
 - **Para cortar los servidores de prueba, buscá por nombre de proceso**
   (`ps -eo pid,comm`, el que se llama `next-server`), nunca con `pkill -f`: el
   patrón también aparece en la línea de comando de tu propia terminal y te la
@@ -484,6 +499,14 @@ el proyecto real, así que se puede correr en la nube y con sesión.
 
   Sin el claim, `app.is_house_admin` da false y `close_period` levanta 42501. Para la
   autoría alcanza `cuoty.actor_id`, que `current_actor()` mira antes que `auth.uid()`.
+- **Para probar una migración contra la base real sin dejar rastro**: un `do $p$
+  … $p$` que la corre con `execute $mig$…$mig$`, impersona con los dos
+  `set_config` (ahí adentro sí se aplica RLS: `current_user` da `authenticated`),
+  llama a la función, junta los resultados en un texto y termina con
+  `raise exception '%', resultados`. El error trae los resultados y Postgres
+  deshace todo, la función nueva incluida. Así se probó `compras_recordar_tienda`
+  en Casa Fonseca. Después confirmá con una consulta que la función sigue siendo
+  la vieja.
 - **Un efecto sin dependencias que llama a `setState` es un bucle esperando a
   pasar.** El `Carrusel` de Compras medía su scroll en `useEffect(medir)`, que corre
   después de cada render, y `medir` llamaba a `setLados` con un updater que
@@ -568,8 +591,7 @@ El plan de la revisión de diseño (octubre de 2026) está completo en sus cuatr
 fases: contraste y color, el marco en el iPhone, jerarquía y textos, e identidad.
 Lo que salió de ahí está en «Diseños» y en «El marco».
 
-El rediseño de Compras va por la fase 4 de cinco: ver «Compras» en «Diseños».
-La quinta espera datos: hoy casi no se repiten productos.
+El rediseño de Compras está completo en sus cinco fases: ver «Compras» en «Diseños».
 
 Pendiente:
 - **Foto de perfil.** `profiles.avatar_url` existe y Google la llena, pero el shell

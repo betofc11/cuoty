@@ -307,7 +307,7 @@ export default async function ComprasPage({
           repite y se hace con una mano en el súper. */}
       <AccionDePie>
         <AgregarItem
-          tiendas={vista.todasLasTiendas.filter((t) => !t.esPredeterminada)}
+          tiendas={vista.todasLasTiendas}
           tiendaElegida={elegida ? { id: elegida.id, nombre: elegida.nombre } : null}
           pendientes={vista.nombresPendientes}
         />
