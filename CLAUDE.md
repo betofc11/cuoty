@@ -539,8 +539,12 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   (`@electric-sql/pglite`, Postgres 17 adentro de Node), instalado en el
   scratchpad y no en el repo: se copia el esquema que toca la migración, se corre
   la migración tal cual y se revisa cada caso. Así se probó
-  `compras_tienda_opcional`. Aplicarla de verdad sí le pide la confirmación al
-  usuario.
+  `compras_tienda_opcional`. **`apply_migration` se traba igual**: para
+  aplicarla, pasale al usuario un script para el SQL Editor de Supabase, con
+  `begin`/`commit` y un `insert` en `supabase_migrations.schema_migrations`
+  (`version` con `to_char(now() at time zone 'utc', 'YYYYMMDDHH24MISS')`, `name`
+  y `statements`) para que quede en el historial como las demás. Probalo antes en
+  PGlite, con esa tabla creada a mano. Así se aplicó `compras_tienda_opcional`.
 - **Un efecto sin dependencias que llama a `setState` es un bucle esperando a
   pasar.** El `Carrusel` de Compras medía su scroll en `useEffect(medir)`, que corre
   después de cada render, y `medir` llamaba a `setLados` con un updater que
