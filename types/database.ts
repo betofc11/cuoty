@@ -968,10 +968,10 @@ export type Database = {
           },
           {
             foreignKeyName: "shopping_items_store_id_fkey"
-            columns: ["store_id"]
+            columns: ["store_id", "house_id"]
             isOneToOne: false
             referencedRelation: "stores"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "house_id"]
           },
         ]
       }
@@ -981,7 +981,6 @@ export type Database = {
           created_by: string | null
           house_id: string
           id: string
-          is_default: boolean
           name: string
         }
         Insert: {
@@ -989,7 +988,6 @@ export type Database = {
           created_by?: string | null
           house_id: string
           id?: string
-          is_default?: boolean
           name: string
         }
         Update: {
@@ -997,7 +995,6 @@ export type Database = {
           created_by?: string | null
           house_id?: string
           id?: string
-          is_default?: boolean
           name?: string
         }
         Relationships: [
