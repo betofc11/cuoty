@@ -8,7 +8,7 @@ import { expect, falso, filas, pestana, test, titulo } from './apoyo'
  * etiqueta «Frescos»; Walmart tiene además Pinol, y Automercado el café.
  */
 
-type Item = { id: string; store_id: string; quantity: string | null; note: string | null }
+type Item = { id: string; store_id: string | null; quantity: string | null; note: string | null }
 
 const WALMART = '00000000-0000-4000-8000-0000000000d1'
 const AUTOMERCADO = '00000000-0000-4000-8000-0000000000d2'
@@ -45,6 +45,20 @@ test('la tienda se cambia con un toque y se guarda sola', async ({ page }) => {
   expect((await leche())?.store_id).toBe(AUTOMERCADO)
   await hoja.getByRole('button', { name: 'Cerrar' }).tap()
   await expect(grupo(page, 'Automercado').getByRole('checkbox', { name: /Leche/ })).toBeVisible()
+})
+
+test('«Cualquiera» deja el item sin tienda', async ({ page }) => {
+  const hoja = await abrirLeche(page)
+  // Va primero: no es una tienda de la casa, es no tener ninguna.
+  const tiendas = hoja.getByRole('group', { name: /^Dónde se compra/ }).getByRole('button')
+  await expect(tiendas).toHaveText(['Cualquiera', 'Automercado', 'Walmart'])
+
+  await hoja.getByRole('button', { name: 'Cualquiera' }).tap()
+
+  await expect(hoja.getByText('Guardado')).toBeVisible()
+  expect((await leche())?.store_id).toBeNull()
+  await hoja.getByRole('button', { name: 'Cerrar' }).tap()
+  await expect(grupo(page, 'En cualquier tienda').getByRole('checkbox', { name: /Leche/ })).toBeVisible()
 })
 
 test('la cantidad se guarda al salir del campo', async ({ page }) => {

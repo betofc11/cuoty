@@ -109,8 +109,8 @@ Fase 1, hecha:
   y **no** con `useOptimistic` (ver «Una transición async congela las pestañas» en
   las trampas). «Editar» va al final, con su palabra, y abre la hoja de edición
   (fase 3). Antes el toque grande abría el detalle, que es lo más raro en el súper.
-- **Agrupada por tienda** (`lib/compras/grupos.ts`), por nombre y con la
-  predeterminada al final como «En cualquier tienda». Revierte la lista plana de
+- **Agrupada por tienda** (`lib/compras/grupos.ts`), por nombre y con lo que no
+  tiene tienda al final, como «En cualquier tienda». Revierte la lista plana de
   antes: agrupar «partía la lista» cuando las filas tenían cuatro renglones.
 - **Lo marcado hoy queda a la vista**, lo último primero, con quién lo marcó y
   sin «Editar». Desde la fase 4 vive dentro de la sección «Comprado».
@@ -119,7 +119,7 @@ Fase 1, hecha:
 
 Fase 2, hecha (filtrar por la tienda donde estás):
 - **Chips de tienda a la vista**, en un `Carrusel`: «Todo» primero, después cada
-  tienda con lo pendiente propio. La predeterminada no lleva chip. El chip elegido
+  tienda con lo pendiente propio. «Cualquiera» no lleva chip. El chip elegido
   se trae a la vista: al final de la fila quedaba tapado contra el borde.
 - **Elegir una tienda suma lo de «Cualquiera»** (`enLaTienda` en
   `lib/compras/consultas.ts`): antes el filtro lo escondía, y en la casa real era
@@ -177,12 +177,9 @@ Fase 4, hecha (encabezado, buscador y comprados):
 Fase 5, hecha (la lista recuerda dónde se compra cada producto):
 - **`add_shopping_item` sin tienda elegida usa la del último item de ese
   producto en la casa**: la que tiene hoy, aunque lo hayan movido después de
-  anotarlo. Si la última vez quedó en «Cualquiera», queda ahí; sin historial, la
-  predeterminada. La tienda elegida a mano siempre gana. Migración
-  `compras_recordar_tienda`, misma firma: ni los permisos ni los tipos cambian.
-- **La función ahora rechaza una tienda de otra casa** («Esa tienda no es de esta
-  casa.»). Antes solo lo revisaba la acción, y la función se llama directo con la
-  clave pública.
+  anotarlo. Si la última vez quedó sin tienda, queda sin tienda; sin historial,
+  también. La tienda elegida a mano siempre gana. Migración
+  `compras_recordar_tienda` (y la reescribió `compras_tienda_opcional`).
 - **La tira dice dónde quedó**: «Jabón quedó en Walmart, como la última vez. ¿Va
   en otra?», con las otras tiendas y «Cualquiera». `agregarItem` pregunta la
   tienda del item recién creado (`tiendaId`), porque la función devuelve solo el
@@ -191,6 +188,26 @@ Fase 5, hecha (la lista recuerda dónde se compra cada producto):
   productos distintos. Las dos veces que un producto se repitió, la memoria habría
   acertado. Es barata y no estorba cuando no acierta. Las sugerencias de «lo de
   siempre» al anotar siguen esperando datos.
+
+Tienda opcional (21/10/2026, después de la fase 5):
+- **«Cualquiera» no es una tienda: es `shopping_items.store_id` null**, y el
+  nombre lo pone la interfaz (el chip «Cualquiera» de la hoja y de la tira, el
+  grupo «En cualquier tienda»). Antes era una fila de `stores` con `is_default`,
+  sostenida por un índice de «una por casa», un trigger que la creaba con cada
+  casa y otro que no dejaba borrarla, y la app la esquivaba en 18 lugares.
+  `TiendaVista` ya no tiene `esPredeterminada`; el item lleva
+  `tienda: TiendaVista | null`.
+- **La llave es `(store_id, house_id) → stores(id, house_id) on delete set null
+  (store_id)`.** Exige que la tienda sea de la casa del item, al crear y al
+  mover (reemplaza el chequeo de la fase 5 en `add_shopping_item`), y al borrar
+  una tienda lo suyo queda sin tienda. Con la llave vieja (`restrict`) lo
+  archivado también bloqueaba: una tienda usada una vez no se podía borrar
+  nunca. `borrarTienda` dice cuántos items pasaron a «Cualquiera».
+- **«Cualquiera» es nombre reservado** (`stores_name_not_cualquiera`), para que
+  no exista una tienda que se llame igual que no tener ninguna.
+- **Dos migraciones, a propósito** (ver «Cómo trabajar acá»):
+  `compras_tienda_opcional_columna` (el null, antes del PR) y
+  `compras_tienda_opcional` (todo lo demás, después del deploy).
 
 ## Auth y correo
 
@@ -391,6 +408,13 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   dolido acá —casas duplicadas, la tuerca que no salía, Realtime mudo, el 404 al
   borrar, el campo del código que truncaba a 6 dígitos uno de 8— no los agarra el
   tipado. Impersonar usuarios en SQL también sirve.
+- **Un cambio de esquema que la app vieja no entiende va en dos migraciones.**
+  Primero la que agranda (una columna que acepta null) antes del PR: la app de
+  hoy ni se entera, y los tipos regenerados ya la traen. Después del deploy, la
+  que achica (borrar columnas, filas, triggers). Al revés, la app vieja pide una
+  columna que ya no existe y la pantalla se cae. Entre el deploy y la segunda
+  migración la app nueva corre contra el esquema viejo: que ese minuto se vea
+  raro, pero que no rompa. Y los tipos, regenerados otra vez al final.
 - Antes de sobrescribir un archivo, leelo. Si ya existía, decilo.
 - **Anotá acá lo que aprendas.** Cada vez que aparezca algo que le habría ahorrado
   tiempo a quien venga después —una trampa, una decisión con su porqué, una
@@ -507,6 +531,16 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   deshace todo, la función nueva incluida. Así se probó `compras_recordar_tienda`
   en Casa Fonseca. Después confirmá con una consulta que la función sigue siendo
   la vieja.
+- **`execute_sql` del MCP de Supabase no corre SQL destructivo** (`drop`,
+  `delete`…) sin una confirmación del usuario, ni siquiera adentro de un `do` que
+  se deshace solo. En la nube esa confirmación no aparece: el pedido vence a los
+  60 s **sin llegar a Postgres** (no queda nada en `postgres_logs`). No lo
+  disfraces para saltarte el control. Para probar una migración así está PGlite
+  (`@electric-sql/pglite`, Postgres 17 adentro de Node), instalado en el
+  scratchpad y no en el repo: se copia el esquema que toca la migración, se corre
+  la migración tal cual y se revisa cada caso. Así se probó
+  `compras_tienda_opcional`. Aplicarla de verdad sí le pide la confirmación al
+  usuario.
 - **Un efecto sin dependencias que llama a `setState` es un bucle esperando a
   pasar.** El `Carrusel` de Compras medía su scroll en `useEffect(medir)`, que corre
   después de cada render, y `medir` llamaba a `setLados` con un updater que

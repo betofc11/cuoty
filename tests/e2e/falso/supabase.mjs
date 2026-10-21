@@ -202,15 +202,12 @@ const RPC = {
       }
       tablas.products.push(producto)
     }
-    // Como la función real desde la fase 5: sin tienda elegida, la del último
-    // item de ese producto en la casa; si no hay, la predeterminada.
+    // Como la función real: sin tienda elegida, la del último item de ese
+    // producto en la casa (que puede ser ninguna); sin historial, ninguna.
     const ultimo = tablas.shopping_items
       .filter((i) => i.house_id === p_house_id && i.product_id === producto.id)
       .sort((x, y) => Date.parse(y.created_at) - Date.parse(x.created_at))[0]
-    const tienda =
-      p_store_id ??
-      ultimo?.store_id ??
-      tablas.stores.find((s) => s.house_id === p_house_id && s.is_default)?.id
+    const tienda = p_store_id ?? ultimo?.store_id ?? null
     const ahora = new Date().toISOString()
     const item = {
       id: randomUUID(),
@@ -350,6 +347,11 @@ async function atender(req, res) {
     if (req.method === 'DELETE') {
       const borradas = filtrar(filas, params)
       datos[tabla] = filas.filter((f) => !borradas.includes(f))
+      // La llave de shopping_items.store_id es `on delete set null`.
+      if (tabla === 'stores') {
+        const ids = new Set(borradas.map((t) => t.id))
+        for (const i of datos.shopping_items ?? []) if (ids.has(i.store_id)) i.store_id = null
+      }
       return devolver
         ? entregar(res, req, 200, proyectar(borradas, params.get('select')))
         : responder(res, 204)

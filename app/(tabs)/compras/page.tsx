@@ -76,14 +76,14 @@ function TituloDeGrupo({
 const TARJETA =
   'border-borde bg-superficie-alta divide-borde-suave divide-y overflow-hidden rounded-2xl border'
 
-/** El grupo de una tienda. La predeterminada se nombra por lo que significa. */
+/** El grupo de una tienda, o el de lo que se consigue en cualquier lado. */
 function GrupoDeTienda({ grupo }: { grupo: GrupoTienda }) {
-  const id = `grupo-${grupo.tienda.id}`
+  const id = `grupo-${grupo.tienda?.id ?? 'cualquiera'}`
   return (
     <section aria-labelledby={id} className="flex flex-col gap-2">
       <TituloDeGrupo
         id={id}
-        titulo={grupo.tienda.esPredeterminada ? 'En cualquier tienda' : grupo.tienda.nombre}
+        titulo={grupo.tienda?.nombre ?? 'En cualquier tienda'}
         cuenta={grupo.items.length}
         cuentaLarga={pendientes(grupo.items.length)}
       />
@@ -428,7 +428,7 @@ export default async function ComprasPage({
           {/* Un grupo por tienda, con «Cualquiera» al final: la tienda se dice
               una vez y no en cada fila. */}
           {aLaVista.map((g) => (
-            <GrupoDeTienda key={g.tienda.id} grupo={g} />
+            <GrupoDeTienda key={g.tienda?.id ?? 'cualquiera'} grupo={g} />
           ))}
 
           {/* Con una tienda elegida, lo de las demás no se esconde: queda
@@ -443,7 +443,7 @@ export default async function ComprasPage({
               />
               <div className="flex flex-col gap-4 pt-4">
                 {otras.map((g) => (
-                  <GrupoDeTienda key={g.tienda.id} grupo={g} />
+                  <GrupoDeTienda key={g.tienda?.id ?? 'cualquiera'} grupo={g} />
                 ))}
               </div>
             </details>

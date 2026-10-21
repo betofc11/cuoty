@@ -16,12 +16,7 @@ export default async function TiendasPage() {
   const { supabase } = await requireUser()
 
   const [{ data: tiendas }, { data: items }] = await Promise.all([
-    supabase
-      .from('stores')
-      .select('id, name, is_default')
-      .eq('house_id', activa.id)
-      .order('is_default', { ascending: false })
-      .order('name'),
+    supabase.from('stores').select('id, name').eq('house_id', activa.id).order('name'),
     supabase
       .from('shopping_items')
       .select('store_id')
@@ -31,7 +26,7 @@ export default async function TiendasPage() {
 
   const conteo = new Map<string, number>()
   for (const i of items ?? []) {
-    conteo.set(i.store_id, (conteo.get(i.store_id) ?? 0) + 1)
+    if (i.store_id) conteo.set(i.store_id, (conteo.get(i.store_id) ?? 0) + 1)
   }
 
   const filas: FilaGestor[] = (tiendas ?? []).map((t) => {
@@ -39,7 +34,6 @@ export default async function TiendasPage() {
     return {
       id: t.id,
       nombre: t.name,
-      fijo: t.is_default ? 'Por defecto' : undefined,
       detalle:
         usos > 0 ? `${usos} ${usos === 1 ? 'item en la lista' : 'items en la lista'}` : undefined,
     }
@@ -52,7 +46,7 @@ export default async function TiendasPage() {
       <header className="flex flex-col gap-1">
         <h1 className="text-tinta text-xl font-semibold">Tiendas</h1>
         <p className="text-tinta-suave text-base">
-          Sirven para agrupar la lista: en el super uno ve solo lo de ese super. Cuando no
+          Sirven para agrupar la lista: en el súper uno ve solo lo de ese súper. Cuando no
           importa dónde, el item queda en «Cualquiera».
         </p>
       </header>

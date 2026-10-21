@@ -1,8 +1,8 @@
 import type { ItemVista, TiendaVista } from './consultas'
 
-/** Un tramo de la lista: lo pendiente de una tienda. */
+/** Un tramo de la lista: lo pendiente de una tienda, o de ninguna (`null`). */
 export type GrupoTienda = {
-  tienda: TiendaVista
+  tienda: TiendaVista | null
   items: ItemVista[]
 }
 
@@ -15,31 +15,31 @@ export type GrupoTienda = {
  * listas de dos líneas». Era cierto con filas de cuatro renglones; con filas
  * de uno, el encabezado cuesta media fila y reemplaza un badge por item.
  *
- * Las tiendas van por nombre y la predeterminada al final. El orden no
+ * Las tiendas van por nombre, y lo que va en cualquier tienda al final. El orden no
  * depende de cuánto falte en cada una, así que la lista no se reacomoda bajo
  * el pulgar mientras se va marcando. Adentro de cada grupo se respeta el
  * orden en que vienen los items.
  */
 export function agruparPorTienda(items: ItemVista[]): GrupoTienda[] {
-  const grupos = new Map<string, GrupoTienda>()
+  // La llave `null` es el grupo «en cualquier tienda».
+  const grupos = new Map<string | null, GrupoTienda>()
 
   for (const item of items) {
-    const grupo = grupos.get(item.tienda.id)
+    const llave = item.tienda?.id ?? null
+    const grupo = grupos.get(llave)
     if (grupo) grupo.items.push(item)
-    else grupos.set(item.tienda.id, { tienda: item.tienda, items: [item] })
+    else grupos.set(llave, { tienda: item.tienda, items: [item] })
   }
 
   return [...grupos.values()].sort((a, b) => {
-    if (a.tienda.esPredeterminada !== b.tienda.esPredeterminada) {
-      return a.tienda.esPredeterminada ? 1 : -1
-    }
+    if (!a.tienda || !b.tienda) return a.tienda ? -1 : b.tienda ? 1 : 0
     return a.tienda.nombre.localeCompare(b.tienda.nombre, 'es')
   })
 }
 
 /**
  * Lo pendiente con una tienda elegida («estoy en Walmart»): a la vista, lo de
- * esa tienda y después lo de la predeterminada, que se consigue en cualquier
+ * esa tienda y después lo que no tiene tienda, que se consigue en cualquier
  * lado. Lo de las otras tiendas va aparte, para un acordeón plegado: no se
  * esconde, porque a veces lo que falta en Automercado también lo hay acá.
  *
@@ -52,6 +52,6 @@ export function partirPorTienda(
   const grupos = agruparPorTienda(items)
   if (!tiendaId) return { aLaVista: grupos, otras: [] }
 
-  const seVe = (g: GrupoTienda) => g.tienda.id === tiendaId || g.tienda.esPredeterminada
+  const seVe = (g: GrupoTienda) => g.tienda === null || g.tienda.id === tiendaId
   return { aLaVista: grupos.filter(seVe), otras: grupos.filter((g) => !seVe(g)) }
 }

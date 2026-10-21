@@ -9,7 +9,12 @@ export type Filtros = {
   tag: string | null
 }
 
-export type TiendaVista = { id: string; nombre: string; esPredeterminada: boolean }
+/**
+ * Una tienda de verdad. «En cualquier tienda» no es una: es un item con
+ * `tienda: null`, y el nombre lo pone la interfaz. Hasta octubre de 2026 era
+ * una fila «Cualquiera» en `stores`, y había que esquivarla en cada lista.
+ */
+export type TiendaVista = { id: string; nombre: string }
 /** `tono` es 1..TONOS y sale de la posición en la lista de la casa. */
 export type TagVista = { id: string; nombre: string; tono: number }
 
@@ -19,7 +24,8 @@ export type ItemVista = {
   cantidad: string | null
   nota: string | null
   comprado: boolean
-  tienda: TiendaVista
+  /** `null` es «en cualquier tienda». */
+  tienda: TiendaVista | null
   tags: TagVista[]
   agregadoPor: string
   /** Cuándo se anotó: lo dice la hoja de edición, no la fila. */
@@ -41,13 +47,13 @@ export type VistaCompras = {
    * ve y «En otras tiendas» (`partirPorTienda` en `lib/compras/grupos.ts`).
    */
   items: ItemVista[]
-  /** La tienda elegida, ya validada: nunca la predeterminada ni una de otra casa. */
+  /** La tienda elegida, ya validada: nunca una de otra casa. */
   tiendaElegida: TiendaConteo | null
   /** Marcados hoy, lo último primero. Quedan a la vista para deshacer el toque. */
   compradosHoy: ItemVista[]
   /** Marcados antes de hoy, lo último primero. Van plegados dentro de «Comprado». */
   compradosAntes: ItemVista[]
-  /** Las tiendas con pendientes propios, sin la predeterminada, más la elegida. */
+  /** Las tiendas con pendientes propios, más la elegida. */
   tiendas: TiendaConteo[]
   /** Solo las etiquetas que algún pendiente a la vista usa, más la elegida. */
   tags: TagConteo[]
@@ -89,12 +95,7 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
 
   const [{ data: filasTiendas }, { data: filasTags }, { data: filasItems }] =
     await Promise.all([
-      supabase
-        .from('stores')
-        .select('id, name, is_default')
-        .eq('house_id', activa.id)
-        .order('is_default', { ascending: false })
-        .order('name'),
+      supabase.from('stores').select('id, name').eq('house_id', activa.id).order('name'),
       supabase.from('tags').select('id, name').eq('house_id', activa.id).order('name'),
       // RLS deja ver los items de TODAS mis casas: sin el filtro por
       // house_id se mezclarían las listas de dos casas distintas.
@@ -108,11 +109,7 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
         .order('created_at', { ascending: false }),
     ])
 
-  const tiendas: TiendaVista[] = (filasTiendas ?? []).map((t) => ({
-    id: t.id,
-    nombre: t.name,
-    esPredeterminada: t.is_default,
-  }))
+  const tiendas: TiendaVista[] = (filasTiendas ?? []).map((t) => ({ id: t.id, nombre: t.name }))
   // El tono sale del orden alfabético de TODAS las etiquetas de la casa,
   // no de las que sobrevivan al filtro: si no, el color de una etiqueta
   // cambiaría según lo que estés filtrando.
@@ -157,8 +154,9 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
   let pendientes = 0
 
   for (const i of items) {
-    const tienda = tiendaPorId.get(i.store_id)
-    if (!tienda) continue
+    // Sin tienda, o una que no aparece (no debería: la llave exige que sea de
+    // la casa), va a «en cualquier tienda». Mejor a la vista que escondida.
+    const tienda = (i.store_id && tiendaPorId.get(i.store_id)) || null
 
     const comprado = i.status === 'purchased'
     if (!comprado) pendientes += 1
@@ -180,17 +178,15 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
   }
 
   // Tienda y etiqueta salen de las listas de la casa, no de la URL: un id de
-  // otra casa se ignora. Elegir la predeterminada también: lo de
-  // «Cualquiera» ya aparece con cualquier tienda que elijas.
-  const elegida = tiendas.find((t) => t.id === filtros.tienda && !t.esPredeterminada) ?? null
+  // otra casa se ignora.
+  const elegida = tiendas.find((t) => t.id === filtros.tienda) ?? null
   const tagElegida = tags.find((t) => t.id === filtros.tag) ?? null
 
   // «Estoy en Walmart»: lo de Walmart y lo que se consigue en cualquier
   // lado. Antes el filtro dejaba afuera lo de «Cualquiera», que en la casa
   // real era la mayoría de lo pendiente: en el súper escondía justo lo que
   // se podía comprar ahí.
-  const enLaTienda = (i: ItemVista) =>
-    !elegida || i.tienda.id === elegida.id || i.tienda.esPredeterminada
+  const enLaTienda = (i: ItemVista) => !elegida || i.tienda === null || i.tienda.id === elegida.id
   const porTag = (i: ItemVista) => !tagElegida || i.tags.some((t) => t.id === tagElegida.id)
 
   const pasaTodo = (i: ItemVista) => enLaTienda(i) && porTag(i)
@@ -203,12 +199,11 @@ export async function vistaDeCompras(filtros: Filtros): Promise<VistaCompras> {
   // cuánto hay de Walmart aunque estés viendo Automercado.
   const pendientesFiltrados = sinComprar.filter(porTag)
 
+  // «En cualquier tienda» no lleva chip: su grupo sale con cualquier tienda.
   const conteoTiendas: TiendaConteo[] = tiendas
-    // La predeterminada no lleva chip: su grupo sale con cualquier tienda.
-    .filter((t) => !t.esPredeterminada)
     .map((t) => ({
       ...t,
-      pendientes: pendientesFiltrados.filter((i) => i.tienda.id === t.id).length,
+      pendientes: pendientesFiltrados.filter((i) => i.tienda?.id === t.id).length,
     }))
     // Una tienda sin nada que comprar no es un filtro, es ruido. La
     // elegida se queda aunque llegue a cero: si no, desaparece su chip

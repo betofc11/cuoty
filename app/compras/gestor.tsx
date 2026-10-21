@@ -10,8 +10,6 @@ import type { EstadoCompras } from './acciones'
 export type FilaGestor = {
   id: string
   nombre: string
-  /** No se puede borrar. Lleva el motivo al lado, no un botón apagado. */
-  fijo?: string
   detalle?: string
 }
 
@@ -109,6 +107,8 @@ export function Gestor({
 
       {estadoCrear.error ? <Alert tono="error">{estadoCrear.error}</Alert> : null}
       {estadoBorrar.error ? <Alert tono="error">{estadoBorrar.error}</Alert> : null}
+      {/* Al borrar una tienda dice a dónde fue lo que tenía. */}
+      {estadoBorrar.ok ? <Alert tono="ok">{estadoBorrar.ok}</Alert> : null}
 
       {filas.length === 0 ? (
         <p className="text-tinta-suave text-base">{vacio}</p>
@@ -123,14 +123,10 @@ export function Gestor({
                 ) : null}
               </span>
 
-              {fila.fijo ? (
-                <span className="text-tinta-suave shrink-0 text-sm">{fila.fijo}</span>
-              ) : (
-                <form action={accionBorrar} className="shrink-0">
-                  <input type="hidden" name={nombreCampoBorrar} value={fila.id} />
-                  <BotonBorrar nombre={fila.nombre} />
-                </form>
-              )}
+              <form action={accionBorrar} className="shrink-0">
+                <input type="hidden" name={nombreCampoBorrar} value={fila.id} />
+                <BotonBorrar nombre={fila.nombre} />
+              </form>
             </li>
           ))}
         </ul>

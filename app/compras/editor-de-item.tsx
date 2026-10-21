@@ -104,7 +104,8 @@ function Formulario({
   etiquetas: TagVista[]
   alBorrar: () => void
 }) {
-  const [tiendaId, setTiendaId] = useState(item.tienda.id)
+  // `null` es «Cualquiera»: el item no tiene tienda.
+  const [tiendaId, setTiendaId] = useState<string | null>(item.tienda?.id ?? null)
   const [cantidad, setCantidad] = useState(item.cantidad ?? '')
   const [nota, setNota] = useState(item.nota ?? '')
   const [tagIds, setTagIds] = useState(() => new Set(item.tags.map((t) => t.id)))
@@ -156,7 +157,7 @@ function Formulario({
     }
   }
 
-  function elegirTienda(nueva: string) {
+  function elegirTienda(nueva: string | null) {
     if (nueva === tiendaId) return
     const antes = tiendaId
     setTiendaId(nueva)
@@ -225,9 +226,11 @@ function Formulario({
           </legend>
           {/* gap-y-3: el chip mide 36 y se toca en 48, así las áreas no se pisan. */}
           <div className="flex flex-wrap gap-x-2 gap-y-3">
-            {tiendas.map((t) => (
+            {/* «Cualquiera» primero: no es una tienda de la casa, es no tener
+                ninguna, y el nombre lo pone la interfaz. */}
+            {[{ id: null, nombre: 'Cualquiera' }, ...tiendas].map((t) => (
               <button
-                key={t.id}
+                key={t.id ?? 'cualquiera'}
                 type="button"
                 aria-pressed={t.id === tiendaId}
                 onClick={() => elegirTienda(t.id)}
