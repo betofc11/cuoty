@@ -43,11 +43,10 @@ export function datosIniciales() {
   const ahora = new Date().toISOString()
   const antes = '2026-09-01T12:00:00+00:00'
 
-  const tienda = (id, name, isDefault = false) => ({
+  const tienda = (id, name) => ({
     id,
     house_id: CASA,
     name,
-    is_default: isDefault,
     created_at: antes,
     created_by: USUARIO.id,
   })
@@ -104,8 +103,8 @@ export function datosIniciales() {
         left_at: null,
       },
     ],
+    // «En cualquier tienda» no es una tienda: es un item con `store_id: null`.
     stores: [
-      tienda('00000000-0000-4000-8000-0000000000d0', 'Cualquiera', true),
       tienda('00000000-0000-4000-8000-0000000000d1', 'Walmart'),
       tienda('00000000-0000-4000-8000-0000000000d2', 'Automercado'),
     ],
@@ -126,11 +125,11 @@ export function datosIniciales() {
         quantity: '2',
       }),
       item(IDS.pinol, '00000000-0000-4000-8000-0000000000f2', '00000000-0000-4000-8000-0000000000d1'),
-      item(IDS.pan, '00000000-0000-4000-8000-0000000000f3', '00000000-0000-4000-8000-0000000000d0', {
+      item(IDS.pan, '00000000-0000-4000-8000-0000000000f3', null, {
         note: 'El integral',
       }),
       item(IDS.cafe, '00000000-0000-4000-8000-0000000000f4', '00000000-0000-4000-8000-0000000000d2'),
-      item(IDS.tomate, '00000000-0000-4000-8000-0000000000f5', '00000000-0000-4000-8000-0000000000d0', {
+      item(IDS.tomate, '00000000-0000-4000-8000-0000000000f5', null, {
         quantity: '1 kg',
         status: 'purchased',
         purchased_by: MARTA,

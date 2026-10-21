@@ -11,18 +11,19 @@ import { Carrusel } from './carrusel'
 import { CHIP, CHIP_APAGADO } from './chips'
 import { avisoDeFallo, type Aviso } from './fallo'
 
-/** Lo que se acaba de anotar y dónde quedó, para mandarlo a otra tienda de un toque. */
-type Recien = { id: string; nombre: string; tienda: TiendaVista }
+/**
+ * Lo que se acaba de anotar y dónde quedó, para mandarlo a otra tienda de un
+ * toque. `tienda: null` es «en cualquier tienda».
+ */
+type Recien = { id: string; nombre: string; tienda: TiendaVista | null }
 
 /**
- * A dónde ofrece mandarlo la tira. Desde «Cualquiera», a cualquier tienda
- * concreta. Desde la tienda de la última vez, a cualquier otra, y también de
- * vuelta a «Cualquiera».
+ * A dónde ofrece mandarlo la tira. Desde «Cualquiera», a cualquier tienda.
+ * Desde la tienda de la última vez, a cualquier otra, y también de vuelta a
+ * «Cualquiera» (`null`).
  */
-function destinos(tiendas: TiendaVista[], actual: TiendaVista): TiendaVista[] {
-  return actual.esPredeterminada
-    ? tiendas.filter((t) => !t.esPredeterminada)
-    : tiendas.filter((t) => t.id !== actual.id)
+function destinos(tiendas: TiendaVista[], actual: TiendaVista | null): (TiendaVista | null)[] {
+  return actual ? [null, ...tiendas.filter((t) => t.id !== actual.id)] : tiendas
 }
 
 /**
@@ -52,7 +53,7 @@ export function AgregarItem({
   tiendaElegida,
   pendientes,
 }: {
-  /** Todas las tiendas de la casa, con la predeterminada: la tira ofrece volver a ella. */
+  /** Las tiendas de la casa. «Cualquiera» no es una: la tira la agrega sola. */
   tiendas: TiendaVista[]
   /** Con una tienda elegida en los filtros, lo nuevo cae ahí directo. */
   tiendaElegida: { id: string; nombre: string } | null
@@ -96,9 +97,19 @@ export function AgregarItem({
         setAviso({ texto: resultado.error })
       } else {
         setTexto('')
-        // Con una tienda elegida no hace falta: cayó donde estás.
-        const tienda = tiendas.find((t) => t.id === resultado.tiendaId)
-        if (!tiendaElegida && resultado.itemId && tienda && destinos(tiendas, tienda).length > 0) {
+        // Con una tienda elegida no hace falta: cayó donde estás. `undefined`
+        // es que no se sabe dónde quedó (una tienda nueva que esta pantalla
+        // todavía no tiene): sin tira, mejor que una tira que miente.
+        const tienda =
+          resultado.tiendaId === null
+            ? null
+            : tiendas.find((t) => t.id === resultado.tiendaId)
+        if (
+          !tiendaElegida &&
+          resultado.itemId &&
+          tienda !== undefined &&
+          destinos(tiendas, tienda).length > 0
+        ) {
           setRecien({ id: resultado.itemId, nombre, tienda })
         }
       }
@@ -109,18 +120,16 @@ export function AgregarItem({
     }
   }
 
-  async function mandarA(tienda: TiendaVista) {
+  async function mandarA(tienda: TiendaVista | null) {
     if (!recien || moviendo) return
     setMoviendo(true)
     setAviso(null)
     try {
-      const resultado = await moverDeTienda(recien.id, tienda.id)
+      const resultado = await moverDeTienda(recien.id, tienda?.id ?? null)
       if (resultado.error) {
         setAviso({ texto: resultado.error })
       } else {
-        setListo(
-          `${recien.nombre} pasó a ${tienda.esPredeterminada ? 'cualquier tienda' : tienda.nombre}.`,
-        )
+        setListo(`${recien.nombre} pasó a ${tienda?.nombre ?? 'cualquier tienda'}.`)
         setRecien(null)
       }
     } catch (e) {
@@ -163,20 +172,20 @@ export function AgregarItem({
               item aparece en un grupo que quizá ni está en pantalla. */}
           <p className="text-tinta-suave text-sm">
             <span className="text-tinta font-semibold">{recien.nombre}</span>{' '}
-            {recien.tienda.esPredeterminada
-              ? 'quedó en cualquier tienda. ¿Dónde se compra?'
-              : `quedó en ${recien.tienda.nombre}, como la última vez. ¿Va en otra?`}
+            {recien.tienda
+              ? `quedó en ${recien.tienda.nombre}, como la última vez. ¿Va en otra?`
+              : 'quedó en cualquier tienda. ¿Dónde se compra?'}
           </p>
           <Carrusel etiqueta={`Dónde se compra ${recien.nombre}`} sangra>
             {destinos(tiendas, recien.tienda).map((t) => (
               <button
-                key={t.id}
+                key={t?.id ?? 'cualquiera'}
                 type="button"
                 onClick={() => mandarA(t)}
                 disabled={moviendo}
                 className={`${CHIP} ${CHIP_APAGADO} disabled:opacity-60`}
               >
-                {t.nombre}
+                {t?.nombre ?? 'Cualquiera'}
               </button>
             ))}
           </Carrusel>

@@ -10,8 +10,11 @@ export type EstadoCompras = {
   ok?: string
   /** El item recién creado: la tira «¿Dónde se compra?» lo mueve con un toque. */
   itemId?: string
-  /** Dónde quedó el item recién creado: la elegida, la de la última vez o «Cualquiera». */
-  tiendaId?: string
+  /**
+   * Dónde quedó el item recién creado: la elegida, la de la última vez, o
+   * `null` («en cualquier tienda»). `undefined` es que no se supo.
+   */
+  tiendaId?: string | null
 }
 
 /** Un solo lugar donde se decide qué se le muestra al usuario ante un fallo. */
@@ -70,23 +73,23 @@ export async function agregarItem(
   if (error) return fallo(error.message)
 
   // Sin tienda elegida, la elige `add_shopping_item`: la de la última vez que
-  // la casa anotó ese producto, o «Cualquiera». La tira de `agregar.tsx` dice
-  // cuál fue, así que hay que preguntarlo: la función devuelve solo el id.
-  let dondeQuedo = tiendaId
-  if (!dondeQuedo && itemId) {
+  // la casa anotó ese producto, o ninguna. La tira de `agregar.tsx` dice cuál
+  // fue, así que hay que preguntarlo: la función devuelve solo el id.
+  let dondeQuedo: string | null | undefined = tiendaId ?? undefined
+  if (!tiendaId && itemId) {
     const { data } = await supabase
       .from('shopping_items')
       .select('store_id')
       .eq('id', itemId)
       .maybeSingle()
-    dondeQuedo = data?.store_id ?? null
+    dondeQuedo = data ? data.store_id : undefined
   }
 
   refrescar()
   return {
     ok: `Se agregó ${nombre}.`,
     itemId: itemId ?? undefined,
-    tiendaId: dondeQuedo ?? undefined,
+    tiendaId: dondeQuedo,
   }
 }
 
@@ -164,7 +167,7 @@ async function tiendaDeLaCasa(tiendaId: string): Promise<boolean> {
  */
 async function actualizarItem(
   itemId: string,
-  cambios: { store_id?: string; quantity?: string | null; note?: string | null },
+  cambios: { store_id?: string | null; quantity?: string | null; note?: string | null },
 ): Promise<EstadoCompras> {
   if (!itemId) return fallo('No encontramos ese item.')
 
@@ -186,8 +189,16 @@ async function actualizarItem(
   return {}
 }
 
-export async function moverDeTienda(itemId: string, tiendaId: string): Promise<EstadoCompras> {
-  if (!(await tiendaDeLaCasa(tiendaId))) return fallo('Esa tienda ya no existe.')
+/**
+ * `null` lo deja sin tienda: «en cualquier tienda». Que la tienda sea de la
+ * casa lo exige también la llave `(store_id, house_id)`; la pregunta de acá es
+ * para decirlo con palabras.
+ */
+export async function moverDeTienda(
+  itemId: string,
+  tiendaId: string | null,
+): Promise<EstadoCompras> {
+  if (tiendaId && !(await tiendaDeLaCasa(tiendaId))) return fallo('Esa tienda ya no existe.')
   return actualizarItem(itemId, { store_id: tiendaId })
 }
 
@@ -294,6 +305,11 @@ export async function crearTienda(
   const nombre = limpiar(formData.get('tienda'))
   if (!nombre) return fallo('Escribí el nombre de la tienda.')
   if (nombre.length > 40) return fallo('El nombre es muy largo (máximo 40).')
+  // Reservado: es como la lista llama a lo que no tiene tienda. El CHECK
+  // `stores_name_not_cualquiera` lo exige igual.
+  if (nombre.toLowerCase() === 'cualquiera') {
+    return fallo('«Cualquiera» ya está: es lo que no tiene tienda.')
+  }
 
   const { supabase } = await requireUser()
   const { activa } = await contextoDeCasa()
@@ -313,6 +329,12 @@ export async function crearTienda(
   return { ok: `Se agregó ${nombre}.` }
 }
 
+/**
+ * Borra una tienda. Lo que tenía, también lo archivado, queda sin tienda:
+ * lo hace la llave (`on delete set null`), así que nunca falta un lugar. Antes
+ * la llave era `restrict` y contaba lo archivado: una tienda usada una vez no
+ * se podía borrar nunca, y lo archivado no se ve en ningún lado para moverlo.
+ */
 export async function borrarTienda(
   _prev: EstadoCompras,
   formData: FormData,
@@ -321,24 +343,35 @@ export async function borrarTienda(
   if (!tiendaId) return fallo('No encontramos esa tienda.')
 
   const { supabase } = await requireUser()
-  const { error } = await supabase.from('stores').delete().eq('id', tiendaId)
+
+  // Para decir cuántos pasan a «Cualquiera»: lo que está en la lista, no el
+  // historial archivado, que nadie ve.
+  const { data: enLaLista } = await supabase
+    .from('shopping_items')
+    .select('id')
+    .eq('store_id', tiendaId)
+    .is('archived_at', null)
+  const pasan = enLaLista?.length ?? 0
+
+  const { data: borradas, error } = await supabase
+    .from('stores')
+    .delete()
+    .eq('id', tiendaId)
+    .select('id')
 
   if (error) {
-    // La FK es RESTRICT: una tienda con items no se borra, porque esos
-    // items quedarían sin dónde comprarse.
-    if (error.code === '23503') {
-      return fallo('Esa tienda tiene items en la lista. Movelos o borralos primero.')
-    }
-    // El trigger guard_default_store protege a "Cualquiera".
-    if (error.code === '2BP01' || error.message.includes('Cualquiera')) {
-      return fallo('«Cualquiera» no se puede borrar: es la tienda por defecto.')
-    }
-    return fallo(error.message)
+    console.error('[cuoty] compras:', error.message)
+    return fallo('No se pudo borrar la tienda. Probá de nuevo.')
   }
+  // Sin error y sin filas: ya no estaba, o RLS no te deja (solo el admin).
+  if (!borradas?.length) return fallo('Esa tienda ya no existe.')
 
   revalidatePath('/compras/tiendas')
   refrescar()
-  return { ok: 'Tienda borrada.' }
+  if (pasan === 0) return { ok: 'Tienda borrada.' }
+  return {
+    ok: `Tienda borrada. ${pasan === 1 ? 'Su item pasó' : `Sus ${pasan} items pasaron`} a «Cualquiera».`,
+  }
 }
 
 // ─────────────────────────────── etiquetas ───────────────────────────────
