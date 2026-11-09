@@ -209,6 +209,63 @@ Tienda opcional (21/10/2026, después de la fase 5):
   `compras_tienda_opcional_columna` (el null, antes del PR) y
   `compras_tienda_opcional` (todo lo demás, después del deploy).
 
+### Gastos (auditoría de noviembre de 2026)
+
+Salió de un pedido del usuario: en Fonseca Cerdas, Eugenia arrastra saldo de cinco
+meses cerrados (junio a octubre) y la pestaña abría con **cinco tarjetas de
+arrastre arriba de las listas**; en el iPhone, las listas del mes empezaban recién
+a la tercera pantalla. El principio es el mismo de Compras: **Gastos es para ver el
+mes; el arrastre va aparte.**
+
+Fase 1, hecha:
+- **El arrastre es un desplegable al pie de Gastos, cerrado**
+  (`ArrastrePlegable` en `components/gastos/arrastre.tsx`, un `<details
+  id="arrastre">`). Plegado: «Arrastre · 5 meses sin saldar · Eugenia» y el
+  total. Abierto: un mes por fila, del más nuevo al más viejo como el selector de
+  mes, con quién debe y cuánto, o «Saldado». **Los meses saldados siguen ahí**:
+  son el historial. Aparece mientras haya algún mes que haya cerrado con saldo.
+  Al miembro no le nombra a nadie: RLS solo le deja ver lo suyo.
+- **Ojo, el usuario lo pidió así, no como pantalla aparte.** La primera versión
+  de esta fase lo mandaba a una pantalla `/gastos/arrastres` con todos los meses
+  desplegados a la vez, y no era lo que quería: «un botón o algo expandible» en
+  Gastos, y desde ahí **elegir un mes** («el arrastre de julio») para ver quién
+  arrastró qué. No es una pestaña nueva.
+- **Cada mes lleva a `/gastos/arrastres/[mes]`** (`2026-07`; fuera de las tabs):
+  «Falta abonar», y en «Quién arrastró qué», por persona, lo que le quedaba al
+  cerrar (la foto de `period_carryovers`) y lo que le falta hoy
+  (`period_balances`), o «Saldado». La fila lleva a `/saldos/[id]`, que es donde
+  se abona, y «Ver los gastos de julio» a `/gastos?mes=2026-07`. Un mes que no
+  existe, que es de otra casa o que no está cerrado da 404. Los datos salen de
+  `vistaDeArrastres` y `detalleDeArrastre` (`lib/gastos/arrastres.ts`);
+  `vistaDeGastos` ya no calcula arrastres.
+- **«Volver» desde un mes regresa a `/gastos?arrastre=abierto#arrastre`**: el
+  `?arrastre=abierto` vuelve a abrir el desplegable, y `TraerALaVista`
+  (`components/gastos/a-la-vista.tsx`) lo trae a la pantalla. El salto al `#` de
+  Next no alcanza: la pestaña muestra primero su `loading.tsx`, Next busca el id
+  en el esqueleto y no lo encuentra. El `scroll-mt` del `<details>` deja libre la
+  barra de arriba, que es sticky.
+- **Lo a favor no se resta de lo que deben los demás.** `porCobrar` suma solo lo
+  positivo; un saldo a favor sale en su fila como «A favor», en verde. Antes un
+  mes con solo saldo a favor contaba como «1 miembro debe».
+- **Sin «Pendiente» en cada fila del arrastre** (`SaldoDelMes`): todo es de lo
+  que falta abonar. Y sin `ParDeMontos`, que dice «Sin gastos en dólares»: un
+  arrastre no son gastos (`MontosQueHay`).
+- **«Me toca ₡X» va en el encabezado de cada lista**, y se fue «Ampliar por
+  lista», que lo escondía plegado y aparte. Si no me toca nada de toda la lista,
+  lo dice una vez ahí («No te toca nada de esta lista») y no en cada fila.
+- **Fila de gasto en dos renglones**: nombre y monto; abajo «Me toca ₡16.225 · se
+  cobra el 12 nov» (la fecha, solo al admin). Antes la fecha iba en un tercero, y
+  en la casa real todos los gastos tienen fecha. **El porcentaje sale solo cuando
+  la leyenda de arriba no lo dice**: en un mes cerrado (no hay leyenda) o si el
+  gasto se repartió con otro porcentaje que el vigente.
+- **Las listas sin gastos se ven** («Sin gastos en noviembre», con su «Editar %»),
+  solo al admin y con el mes abierto. Antes una lista recién creada no aparecía en
+  ningún lado y no había cómo ajustarle los porcentajes antes del primer gasto.
+- **«Volver» desde un gasto vuelve a su mes** (`?mes=`): desde un mes cerrado caía
+  en el abierto.
+- Un mes cerrado sin gastos ya no dice «Agregá el primero con el botón de abajo»:
+  ahí no hay botón.
+
 ## Auth y correo
 
 Se entra con un **código numérico** que llega por correo, o con Google. No hay
@@ -276,6 +333,11 @@ de la revisión de diseño y acá ya no manda `Cuoty.html`:
 3. **Sin mayúsculas espaciadas como títulos.** Las etiquetas tipo «MI SALDO
    PENDIENTE» pasaron a títulos de verdad (fase 3). Queda en mayúscula solo el
    campo del código de invitación, porque ahí es el formato del código.
+
+**Un cuarto desvío, pedido por el usuario el 9/11/2026:** el arrastre ya no es «una
+lista más en Gastos», como en la vuelta 3a del prototipo. Ese dibujo pensaba en un
+mes de arrastre; con cinco, tapaba el mes en curso. Va plegado al pie de Gastos y
+cada mes tiene su pantalla (ver «Gastos»).
 
 Los estilos de texto que quedaron (fase 3):
 
@@ -377,7 +439,20 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   se escriben al compilar). Después de correrlas, volvé a compilar antes de un
   `next start` contra Supabase de verdad.
 - Solo Chromium, con pantalla de iPhone y toques. En una Mac, la primera vez:
-  `npx playwright install chromium`. En el contenedor de la nube ya está.
+  `npx playwright install chromium`.
+- **En el contenedor de la nube el Chromium preinstalado no es el de la versión
+  del repo** (al 9/11/2026: el repo fija `@playwright/test` 1.56.1, que busca
+  `chromium_headless_shell-1194`, y la nube trae el 1243). Todas las pruebas
+  fallan con «Executable doesn't exist». No instalés otro navegador: corré con
+  una config fuera del repo que importe la de verdad y le agregue
+  `use.launchOptions.executablePath: '/opt/pw-browsers/chromium'`, con `testDir`
+  absoluto y `cwd` del repo en cada `webServer`, y pasala con `-c`.
+- **La casa del falso trae Gastos** (`datosDeGastos` en `datos.mjs`), como
+  Fonseca Cerdas: cinco meses cerrados detrás del abierto, Marta con saldo vivo en
+  cuatro, uno saldado después del cierre, uno abonado a medias después del cierre
+  y uno con dólares; tres listas, una sin gastos. `period_balances` y
+  `membership_balances` se calculan ahí desde el ledger y los abonos, como en
+  Postgres, para que no se contradigan. Lo prueba `gastos.spec.ts`.
 - `tests/e2e/navegacion.spec.ts` es el guardia de la barra de pestañas: prueba
   cada pestaña desde cada pantalla y también **con una acción en vuelo**, que es
   como se rompió, y **un rato después de cargar Compras**, que es como se rompió
@@ -605,8 +680,9 @@ el proyecto real, así que se puede correr en la nube y con sesión.
   nada. Ahora el monto sale de `period_balances` y el carryover se muestra como
   línea secundaria solo cuando difiere. Las dos fuentes tienen **la misma policy**
   (admin ve la casa, miembro solo lo suyo), así que el cambio no movió los
-  alcances. Queda un borde preexistente: un saldo **a favor** cuenta como
-  «miembro debe», porque solo se filtra el cero.
+  alcances. Desde noviembre de 2026 esto vive en `lib/gastos/arrastres.ts`, y el
+  borde de un saldo **a favor** que contaba como «miembro debe» quedó resuelto
+  (ver «Gastos» en «Convenciones»).
 - **El blanco sobre el terracota del modo oscuro daba 3,07:1.** En oscuro los
   rellenos de color son claros (`#d97a4e`, `#f0707f`, `#6bbf85`), así que el texto
   encima tiene que ser oscuro. Por eso existe `sobre-relleno`. Lo mismo le pasaba a
@@ -630,6 +706,9 @@ fases: contraste y color, el marco en el iPhone, jerarquía y textos, e identida
 Lo que salió de ahí está en «Diseños» y en «El marco».
 
 El rediseño de Compras está completo en sus cinco fases: ver «Compras» en «Diseños».
+
+La auditoría de Gastos va por la fase 1 (el arrastre fuera de la pestaña y las
+listas primero): ver «Gastos» en «Convenciones».
 
 Pendiente:
 - **Foto de perfil.** `profiles.avatar_url` existe y Google la llena, pero el shell

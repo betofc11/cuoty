@@ -42,26 +42,11 @@ export type ListaVista = {
   reparto: ParteDelReparto[]
 }
 
-export type ArrastreVista = {
-  periodoId: string
-  mes: string
-  /** Cuántos DEBEN, no cuántos viven en la casa. */
-  miembros: number
-  /** Lo que sigue vivo HOY, no lo que quedó al cerrar. */
-  monto: MoneyPair
-  /**
-   * La foto de `period_carryovers`, y solo cuando ya no coincide con el saldo
-   * vivo — o sea, cuando alguien abonó después del cierre. `null` si son iguales.
-   */
-  alCerrar: MoneyPair | null
-}
-
 export type VistaDeGastos = {
   periodo: PeriodoVista
   periodos: PeriodoVista[]
   listas: ListaVista[]
   miCargo: MoneyPair
-  arrastres: ArrastreVista[]
   /** Quién cerró este mes y cuándo. Solo si está cerrado. */
   cierre: CierreVista | null
 }
@@ -204,82 +189,6 @@ export async function vistaDeGastos(mesPedido?: string): Promise<VistaDeGastos> 
     reparto: repartoPorLista.get(l.id) ?? [],
   }))
 
-  // ── Arrastre: lo que sigue vivo de meses ya cerrados ──
-  const cerradosPrevios = periodos.filter(
-    (p) => p.estado === 'closed' && p.mes < periodo.mes,
-  )
-
-  const arrastres: ArrastreVista[] = []
-
-  if (cerradosPrevios.length > 0) {
-    const idsPrevios = cerradosPrevios.map((p) => p.id)
-
-    const [{ data: filasSaldo }, { data: filasFoto }] = await Promise.all([
-      // Cerrado congela los gastos y los porcentajes, NO los abonos: un mes
-      // cerrado sigue recibiendo plata. Por eso el monto sale del saldo vivo y
-      // no de `period_carryovers` —esa foto se queda vieja apenas alguien abona,
-      // y decía «debe ₡16.604» de un mes ya saldado.
-      supabase
-        .from('period_balances')
-        .select('period_id, membership_id, currency, balance')
-        .in('period_id', idsPrevios),
-      // La foto sí, pero solo para contrastarla abajo.
-      supabase
-        .from('period_carryovers')
-        .select('period_id, currency, amount')
-        .in('period_id', idsPrevios),
-    ])
-
-    const porPeriodo = new Map<string, { par: MoneyPair; miembros: Set<string> }>()
-
-    for (const fila of filasSaldo ?? []) {
-      // `period_balances` es una vista: sus columnas llegan nullable al tipo.
-      if (!fila.period_id || !fila.membership_id || !fila.currency) continue
-      const monto = Number(fila.balance)
-      if (monto === 0) continue
-      const actual = porPeriodo.get(fila.period_id) ?? {
-        par: zeroPair(),
-        miembros: new Set<string>(),
-      }
-      porPeriodo.set(fila.period_id, {
-        par: sumarEnPar(actual.par, monto, fila.currency),
-        miembros: actual.miembros.add(fila.membership_id),
-      })
-    }
-
-    const fotoPorPeriodo = new Map<string, MoneyPair>()
-
-    for (const fila of filasFoto ?? []) {
-      fotoPorPeriodo.set(
-        fila.period_id,
-        sumarEnPar(
-          fotoPorPeriodo.get(fila.period_id) ?? zeroPair(),
-          Number(fila.amount),
-          fila.currency,
-        ),
-      )
-    }
-
-    for (const p of cerradosPrevios) {
-      // Sin saldo vivo no hay nada que cobrar: el mes quedó saldado y la
-      // tarjeta desaparece sola.
-      const dato = porPeriodo.get(p.id)
-      if (!dato) continue
-
-      const foto = fotoPorPeriodo.get(p.id) ?? zeroPair()
-      const abonaronDespues =
-        foto.CRC.minor !== dato.par.CRC.minor || foto.USD.minor !== dato.par.USD.minor
-
-      arrastres.push({
-        periodoId: p.id,
-        mes: p.mes,
-        miembros: dato.miembros.size,
-        monto: dato.par,
-        alCerrar: abonaronDespues ? foto : null,
-      })
-    }
-  }
-
   // Quién cerró el mes: es parte del mismo mecanismo de confianza que el
   // historial de abonos — un acto del admin que el miembro puede ver.
   let cierre: CierreVista | null = null
@@ -298,5 +207,5 @@ export async function vistaDeGastos(mesPedido?: string): Promise<VistaDeGastos> 
     }
   }
 
-  return { periodo, periodos, listas, miCargo, arrastres, cierre }
+  return { periodo, periodos, listas, miCargo, cierre }
 }
