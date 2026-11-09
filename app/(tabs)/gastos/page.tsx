@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 import { ParDeMontos } from '@/components/dinero/par'
 import { ChipMoneda, Monto } from '@/components/dinero/monto'
-import { EntradaDeArrastre } from '@/components/gastos/arrastre'
+import { ArrastrePlegable } from '@/components/gastos/arrastre'
 import { BarraDeReparto } from '@/components/gastos/reparto'
 import { SelectorMes } from '@/components/gastos/selector-mes'
 import { AccionDePie } from '@/components/shell/accion-de-pie'
@@ -153,9 +153,9 @@ function SeccionDeLista({
 export default async function GastosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string }>
+  searchParams: Promise<{ mes?: string; arrastre?: string }>
 }) {
-  const { mes } = await searchParams
+  const { mes, arrastre } = await searchParams
   const { activa } = await contextoDeCasa()
   const [vista, arrastres] = await Promise.all([vistaDeGastos(mes), vistaDeArrastres()])
 
@@ -264,9 +264,8 @@ export default async function GastosPage({
         </section>
       ) : null}
 
-      {/* Los meses cerrados que siguen debiendo tienen su pantalla. Acá, una
-          sola fila al pie: antes eran una tarjeta por mes ARRIBA de las listas. */}
-      <EntradaDeArrastre vista={arrastres} esAdmin={esAdmin} />
+      {/* Plegado y al pie: antes era una tarjeta por mes ARRIBA de las listas. */}
+      <ArrastrePlegable vista={arrastres} esAdmin={esAdmin} abierto={arrastre === 'abierto'} />
 
       {/* Lo que el admin usa poco va al final, en la misma fila secundaria que
           Compras usa para «Etiquetas» y «Tiendas». */}

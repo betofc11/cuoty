@@ -218,24 +218,38 @@ a la tercera pantalla. El principio es el mismo de Compras: **Gastos es para ver
 mes; el arrastre va aparte.**
 
 Fase 1, hecha:
-- **El arrastre tiene su pantalla, `/gastos/arrastres`** (fuera de las tabs, con
-  «Volver»). Meses con saldo vivo del más viejo al más nuevo (el orden en que se
-  abonan), cada persona con su monto y enlace a `/saldos/[id]`, que es donde se
-  abona, la foto del cierre solo cuando difiere, y «Ya saldados» plegado: los
-  meses que cerraron debiendo y ya están en cero, para ver el historial. Los
-  datos salen de `vistaDeArrastres` (`lib/gastos/arrastres.ts`); `vistaDeGastos`
-  ya no calcula arrastres.
-- **En Gastos queda una sola fila, al pie, debajo de las listas**
-  (`EntradaDeArrastre` en `components/gastos/arrastre.tsx`): «Arrastre · 5 meses
-  sin saldar · Eugenia» con el total. Aparece mientras haya algún mes que cerró
-  con saldo, aunque ya esté saldado («Todo saldado»), para que el historial siga a
-  mano. Al miembro no le nombra a nadie: RLS solo le deja ver lo suyo.
+- **El arrastre es un desplegable al pie de Gastos, cerrado**
+  (`ArrastrePlegable` en `components/gastos/arrastre.tsx`, un `<details
+  id="arrastre">`). Plegado: «Arrastre · 5 meses sin saldar · Eugenia» y el
+  total. Abierto: un mes por fila, del más nuevo al más viejo como el selector de
+  mes, con quién debe y cuánto, o «Saldado». **Los meses saldados siguen ahí**:
+  son el historial. Aparece mientras haya algún mes que haya cerrado con saldo.
+  Al miembro no le nombra a nadie: RLS solo le deja ver lo suyo.
+- **Ojo, el usuario lo pidió así, no como pantalla aparte.** La primera versión
+  de esta fase lo mandaba a una pantalla `/gastos/arrastres` con todos los meses
+  desplegados a la vez, y no era lo que quería: «un botón o algo expandible» en
+  Gastos, y desde ahí **elegir un mes** («el arrastre de julio») para ver quién
+  arrastró qué. No es una pestaña nueva.
+- **Cada mes lleva a `/gastos/arrastres/[mes]`** (`2026-07`; fuera de las tabs):
+  «Falta abonar», y en «Quién arrastró qué», por persona, lo que le quedaba al
+  cerrar (la foto de `period_carryovers`) y lo que le falta hoy
+  (`period_balances`), o «Saldado». La fila lleva a `/saldos/[id]`, que es donde
+  se abona, y «Ver los gastos de julio» a `/gastos?mes=2026-07`. Un mes que no
+  existe, que es de otra casa o que no está cerrado da 404. Los datos salen de
+  `vistaDeArrastres` y `detalleDeArrastre` (`lib/gastos/arrastres.ts`);
+  `vistaDeGastos` ya no calcula arrastres.
+- **«Volver» desde un mes regresa a `/gastos?arrastre=abierto#arrastre`**: el
+  `?arrastre=abierto` vuelve a abrir el desplegable, y `TraerALaVista`
+  (`components/gastos/a-la-vista.tsx`) lo trae a la pantalla. El salto al `#` de
+  Next no alcanza: la pestaña muestra primero su `loading.tsx`, Next busca el id
+  en el esqueleto y no lo encuentra. El `scroll-mt` del `<details>` deja libre la
+  barra de arriba, que es sticky.
 - **Lo a favor no se resta de lo que deben los demás.** `porCobrar` suma solo lo
   positivo; un saldo a favor sale en su fila como «A favor», en verde. Antes un
   mes con solo saldo a favor contaba como «1 miembro debe».
-- **Sin «Pendiente» en cada fila del arrastre** (`SaldoDelMes`): toda la pantalla
-  es de lo que falta abonar. Y sin `ParDeMontos`, que dice «Sin gastos en
-  dólares»: un arrastre no son gastos (`MontosQueHay`).
+- **Sin «Pendiente» en cada fila del arrastre** (`SaldoDelMes`): todo es de lo
+  que falta abonar. Y sin `ParDeMontos`, que dice «Sin gastos en dólares»: un
+  arrastre no son gastos (`MontosQueHay`).
 - **«Me toca ₡X» va en el encabezado de cada lista**, y se fue «Ampliar por
   lista», que lo escondía plegado y aparte. Si no me toca nada de toda la lista,
   lo dice una vez ahí («No te toca nada de esta lista») y no en cada fila.
@@ -322,7 +336,8 @@ de la revisión de diseño y acá ya no manda `Cuoty.html`:
 
 **Un cuarto desvío, pedido por el usuario el 9/11/2026:** el arrastre ya no es «una
 lista más en Gastos», como en la vuelta 3a del prototipo. Ese dibujo pensaba en un
-mes de arrastre; con cinco, tapaba el mes en curso. Tiene su pantalla (ver «Gastos»).
+mes de arrastre; con cinco, tapaba el mes en curso. Va plegado al pie de Gastos y
+cada mes tiene su pantalla (ver «Gastos»).
 
 Los estilos de texto que quedaron (fase 3):
 

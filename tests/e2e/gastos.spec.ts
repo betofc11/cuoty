@@ -12,8 +12,8 @@ const MESES = [
   'Julio', 'Agosto', 'Setiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ]
 
-/** «Octubre 2026» para el mes que fue hace `n` meses en Costa Rica. */
-function mesAtras(n: number): string {
+/** El mes que fue hace `n` meses en Costa Rica: año, número (1-12) y nombre. */
+function mesAtrasPartes(n: number) {
   const [anio, mes] = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Costa_Rica',
     year: 'numeric',
@@ -23,7 +23,24 @@ function mesAtras(n: number): string {
     .split('-')
     .map(Number)
   const total = anio! * 12 + (mes! - 1) - n
-  return `${MESES[total % 12]} ${Math.floor(total / 12)}`
+  return { anio: Math.floor(total / 12), numero: (total % 12) + 1, nombre: MESES[total % 12]! }
+}
+
+/** «Octubre 2026». */
+function mesAtras(n: number): string {
+  const { nombre, anio } = mesAtrasPartes(n)
+  return `${nombre} ${anio}`
+}
+
+/** '2026-10', la clave de la URL. */
+function claveAtras(n: number): string {
+  const { anio, numero } = mesAtrasPartes(n)
+  return `${anio}-${String(numero).padStart(2, '0')}`
+}
+
+/** El desplegable del arrastre, al pie de Gastos. */
+function arrastre(page: import('@playwright/test').Page) {
+  return page.locator('details#arrastre')
 }
 
 test.beforeEach(async ({ page }) => {
@@ -31,21 +48,21 @@ test.beforeEach(async ({ page }) => {
   await expect(titulo(page)).toHaveText('Gastos')
 })
 
-test('las listas del mes se ven sin bajar, y el arrastre es una sola fila al pie', async ({
+test('las listas del mes se ven sin bajar, y el arrastre va plegado al pie', async ({
   page,
 }) => {
   const servicios = page.getByRole('heading', { level: 2, name: 'Servicios' })
   await expect(servicios).toBeInViewport()
 
-  // Ninguna tarjeta por mes.
+  // Ninguna tarjeta por mes, y los meses no se ven hasta abrirlo.
   await expect(page.getByText(/^Arrastre de /)).toHaveCount(0)
-
-  const arrastre = page.getByRole('link', { name: /^Arrastre/ })
-  await expect(arrastre).toHaveCount(1)
-  await expect(arrastre).toContainText('4 meses sin saldar · Marta')
+  await expect(arrastre(page)).toHaveCount(1)
+  await expect(arrastre(page)).not.toHaveAttribute('open')
+  await expect(arrastre(page).locator('summary')).toContainText('4 meses sin saldar · Marta')
+  await expect(page.getByRole('link', { name: new RegExp(`^${mesAtras(1)}`) })).toBeHidden()
 
   const yLista = (await servicios.boundingBox())!.y
-  const yArrastre = (await arrastre.boundingBox())!.y
+  const yArrastre = (await arrastre(page).boundingBox())!.y
   expect(yArrastre).toBeGreaterThan(yLista)
 })
 
@@ -68,26 +85,59 @@ test('una lista sin gastos aparece, con su «Editar %»', async ({ page }) => {
   await expect(page).toHaveURL(/\/gastos\/porcentajes\//)
 })
 
-test('la pantalla del arrastre lista los meses del más viejo al más nuevo', async ({ page }) => {
-  await page.getByRole('link', { name: /^Arrastre/ }).tap()
+test('abierto, el arrastre muestra un mes por fila, del más nuevo al más viejo', async ({
+  page,
+}) => {
+  await arrastre(page).locator('summary').tap()
 
-  await expect(page).toHaveURL('/gastos/arrastres')
-  await expect(titulo(page)).toHaveText('Arrastre de meses cerrados')
+  const meses = arrastre(page).getByRole('link')
+  await expect(meses).toHaveCount(5)
+  for (const [i, n] of [1, 2, 3, 4, 5].entries()) {
+    await expect(meses.nth(i)).toContainText(mesAtras(n))
+  }
+  // El historial: el que ya se pagó sigue ahí, como saldado.
+  await expect(meses.nth(4)).toContainText('Saldado')
+})
 
-  const meses = page.getByRole('heading', { level: 3 })
-  await expect(meses).toHaveText([mesAtras(4), mesAtras(3), mesAtras(2), mesAtras(1)])
+test('al elegir un mes se ve quién arrastró qué, y «Volver» lo deja abierto', async ({
+  page,
+}) => {
+  const { nombre, anio } = mesAtrasPartes(2)
 
-  // El que recibió un abono después del cierre muestra la foto aparte.
-  await expect(page.getByText('Al cerrarlo quedaban ₡107.050')).toBeVisible()
+  await arrastre(page).locator('summary').tap()
+  await arrastre(page).getByRole('link', { name: new RegExp(`^${mesAtras(2)}`) }).tap()
 
-  // Lo saldado queda a mano, plegado.
-  await page.getByText('Ya saldados').tap()
-  await expect(page.getByText(mesAtras(5))).toBeVisible()
-  await expect(page.getByText('Saldado', { exact: true })).toBeVisible()
+  await expect(page).toHaveURL(`/gastos/arrastres/${claveAtras(2)}`)
+  await expect(titulo(page)).toHaveText(`Arrastre de ${nombre.toLowerCase()} de ${anio}`)
+  await expect(page.getByRole('heading', { name: 'Quién arrastró qué' })).toBeVisible()
 
-  // Cada persona lleva a su saldo, que es donde se abona.
-  await page.getByRole('link', { name: /^Marta ₡45\.000/ }).tap()
-  await expect(page).toHaveURL(/\/saldos\//)
+  // Abonó una parte después del cierre: se ve lo que quedaba y lo que falta.
+  const marta = page.getByRole('link', { name: /^Marta/ })
+  await expect(marta).toContainText('Al cerrar quedaban ₡107.050')
+  await expect(marta).toContainText('₡87.050')
+
+  await page.getByRole('link', { name: 'Volver' }).tap()
+  await expect(page).toHaveURL(/arrastre=abierto/)
+  await expect(arrastre(page)).toHaveAttribute('open')
+  await expect(arrastre(page).locator('summary')).toBeInViewport()
+})
+
+test('un mes saldado dice que no falta nada, y lleva a sus gastos', async ({ page }) => {
+  const { nombre } = mesAtrasPartes(5)
+
+  await page.goto(`/gastos/arrastres/${claveAtras(5)}`)
+  await expect(page.getByText('Nada: ya está saldado')).toBeVisible()
+  await expect(page.getByRole('link', { name: /^Marta/ })).toContainText('Saldado')
+
+  await page.getByRole('link', { name: `Ver los gastos de ${nombre.toLowerCase()}` }).tap()
+  await expect(page).toHaveURL(`/gastos?mes=${claveAtras(5)}`)
+  await expect(page.getByText(`${mesAtras(5)} está cerrado`)).toBeVisible()
+})
+
+test('un mes que no es arrastre no existe', async ({ page }) => {
+  // El mes abierto no está cerrado: no tiene arrastre.
+  await page.goto(`/gastos/arrastres/${claveAtras(0)}`)
+  await expect(page.getByText('No encontramos eso')).toBeVisible()
 })
 
 test('«Volver» desde un gasto de un mes cerrado vuelve a ese mes', async ({ page }) => {
