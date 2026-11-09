@@ -14,3 +14,10 @@ export declare const IDS: {
   jabon: string
 }
 export declare function datosIniciales(): Record<string, Record<string, unknown>[]>
+export declare const IDS_GASTOS: {
+  periodoAbierto: string
+  servicios: string
+  suscripciones: string
+  mascotas: string
+  luz: string
+}

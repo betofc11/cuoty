@@ -14,7 +14,7 @@ import {
   tonoDe,
   type ParteDelReparto,
 } from '@/lib/casas/personas'
-import { diaYMes } from '@/lib/fechas'
+import { claveDeMes, diaYMes } from '@/lib/fechas'
 import { fromDecimal } from '@/lib/money'
 
 export default async function GastoPage({
@@ -28,14 +28,15 @@ export default async function GastoPage({
 
   const { data: gasto } = await supabase
     .from('expenses')
-    .select('id, house_id, list_id, name, amount, currency, charge_date, voided_at')
+    .select('id, house_id, list_id, period_id, name, amount, currency, charge_date, voided_at')
     .eq('id', gastoId)
     .maybeSingle()
 
   if (!gasto || gasto.house_id !== activa.id) notFound()
 
-  const [{ data: lista }, { data: asientos }] = await Promise.all([
+  const [{ data: lista }, { data: periodo }, { data: asientos }] = await Promise.all([
     supabase.from('expense_lists').select('name').eq('id', gasto.list_id).maybeSingle(),
+    supabase.from('periods').select('month').eq('id', gasto.period_id).maybeSingle(),
     supabase
       .from('ledger_entries')
       .select('membership_id, amount, percent_applied')
@@ -80,7 +81,11 @@ export default async function GastoPage({
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-app flex-col gap-6 px-4 pt-5 pb-seguro">
-      <BackLink href="/gastos">Volver</BackLink>
+      {/* Vuelve al mes del gasto: sin el `?mes=`, desde un mes cerrado se caía
+          en el abierto y había que volver a elegirlo. */}
+      <BackLink href={periodo ? `/gastos?mes=${claveDeMes(periodo.month)}` : '/gastos'}>
+        Volver
+      </BackLink>
 
       <header className="flex flex-col gap-2">
         <div className="flex items-start justify-between gap-3">

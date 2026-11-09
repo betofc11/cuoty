@@ -108,3 +108,15 @@ export function diaYMes(iso: string): string {
   const dia = Number(partes[2] ?? '1')
   return `${dia} de ${MESES[mes - 1] ?? ''}`
 }
+
+/**
+ * '2026-09-14' → '14 set'. Para una fecha de calendario (`charge_date`), que no
+ * tiene hora: se parsea a mano, como `diaYMes`. `fechaCorta` no sirve acá
+ * porque pasa por `new Date`, y medianoche UTC en CR es el día anterior.
+ */
+export function diaYMesCorto(iso: string): string {
+  const partes = iso.split('-')
+  const mes = Number(partes[1] ?? '1')
+  const dia = Number(partes[2] ?? '1')
+  return `${dia} ${MESES[mes - 1]?.slice(0, 3) ?? ''}`
+}

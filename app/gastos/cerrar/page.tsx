@@ -41,8 +41,8 @@ export default async function CerrarMesPage({
 
       {vista.remanentes.length > 0 ? (
         <Alert tono="error">
-          Quedan saldos sin abonar. Se arrastran a {cortoSig} como el arrastre de{' '}
-          {nombreDeMes(vista.mes)}.
+          Quedan saldos sin abonar. Pasan al arrastre de meses cerrados y se cobran junto
+          con {cortoSig}.
         </Alert>
       ) : (
         <Alert tono="ok">Todos están al día. No hay nada que arrastrar.</Alert>

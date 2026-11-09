@@ -2,18 +2,153 @@ import Link from 'next/link'
 
 import { ParDeMontos } from '@/components/dinero/par'
 import { ChipMoneda, Monto } from '@/components/dinero/monto'
+import { EntradaDeArrastre } from '@/components/gastos/arrastre'
 import { BarraDeReparto } from '@/components/gastos/reparto'
 import { SelectorMes } from '@/components/gastos/selector-mes'
 import { AccionDePie } from '@/components/shell/accion-de-pie'
 import { OfflineBanner } from '@/components/ui/offline-banner'
 import { contextoDeCasa } from '@/lib/casas/activa'
-import { claveDeMes, diaYMes, fechaCorta, nombreDeMes } from '@/lib/fechas'
-import { vistaDeGastos } from '@/lib/gastos/consultas'
-import { isZero } from '@/lib/money'
+import { claveDeMes, diaYMesCorto, fechaCorta, nombreDeMes } from '@/lib/fechas'
+import { vistaDeArrastres } from '@/lib/gastos/arrastres'
+import { vistaDeGastos, type GastoVista, type ListaVista } from '@/lib/gastos/consultas'
+import { isZero, type MoneyPair } from '@/lib/money'
 
 const BOTON_SECUNDARIO =
   'min-h-touch border-borde bg-superficie-alta text-tinta flex flex-1 items-center ' +
   'justify-center rounded-2xl border px-4 text-base font-semibold'
+
+/** «Me toca ₡37.075», o «… y $18,48» si la lista trae las dos monedas. */
+function MiParte({ par }: { par: MoneyPair }) {
+  const hayCrc = !isZero(par.CRC)
+  const hayUsd = !isZero(par.USD)
+
+  return (
+    <>
+      Me toca {hayCrc || !hayUsd ? <Monto monto={par.CRC} tamano="chico" /> : null}
+      {hayCrc && hayUsd ? ' y ' : null}
+      {hayUsd ? <Monto monto={par.USD} tamano="chico" /> : null}
+    </>
+  )
+}
+
+/**
+ * El segundo renglón de un gasto: lo que me toca y, para el admin, cuándo se
+ * cobra. Antes eran dos renglones más («50% · me toca …» y «Se cobra el …»).
+ *
+ * El porcentaje sale solo cuando dice algo que la leyenda de arriba no dice: en
+ * un mes cerrado (no hay leyenda) o si el gasto se repartió con otro porcentaje
+ * que el vigente. Repetir «50%» en cada fila, debajo de «Luis 50%», era ruido.
+ */
+function DetalleDelGasto({
+  gasto,
+  miPorcentajeVigente,
+  algoMeToca,
+  conFecha,
+}: {
+  gasto: GastoVista
+  miPorcentajeVigente: number | null
+  algoMeToca: boolean
+  conFecha: boolean
+}) {
+  const partes: React.ReactNode[] = []
+
+  if (gasto.miPorcentaje !== null) {
+    const conPorcentaje = gasto.miPorcentaje !== miPorcentajeVigente
+    partes.push(
+      <span key="parte">
+        {conPorcentaje ? `${gasto.miPorcentaje}% · me toca ` : 'Me toca '}
+        <Monto monto={gasto.miCargo} tamano="chico" />
+      </span>,
+    )
+  } else if (algoMeToca) {
+    // Si no me toca nada de toda la lista, ya lo dice el encabezado una vez.
+    partes.push(<span key="parte">No te toca</span>)
+  }
+
+  if (conFecha && gasto.fechaCobro) {
+    const fecha = diaYMesCorto(gasto.fechaCobro)
+    partes.push(
+      <span key="fecha">{partes.length > 0 ? `se cobra el ${fecha}` : `Se cobra el ${fecha}`}</span>,
+    )
+  }
+
+  if (partes.length === 0) return null
+
+  return (
+    <p className="text-tinta-suave text-sm">
+      {partes.flatMap((p, i) => (i === 0 ? [p] : [' · ', p]))}
+    </p>
+  )
+}
+
+function SeccionDeLista({
+  lista,
+  miMembresia,
+  editable,
+  esAdmin,
+}: {
+  lista: ListaVista
+  miMembresia: string
+  editable: boolean
+  esAdmin: boolean
+}) {
+  const algoMeToca = lista.gastos.some((g) => g.miPorcentaje !== null)
+  const miPorcentajeVigente =
+    lista.reparto.find((p) => p.membershipId === miMembresia)?.percent ?? null
+
+  return (
+    <section className="flex flex-col gap-2">
+      <header className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col">
+          <h2 className="text-tinta text-base font-semibold">{lista.nombre}</h2>
+          {/* Lo que antes escondía «Ampliar por lista», ahora junto a su lista. */}
+          <span className="text-tinta-suave text-sm">
+            {algoMeToca ? <MiParte par={lista.miSubtotal} /> : 'No te toca nada de esta lista'}
+          </span>
+        </div>
+        {/* Solo el admin reparte. Al miembro no se le muestra deshabilitado. */}
+        {editable ? (
+          <Link
+            href={`/gastos/porcentajes/${lista.id}`}
+            className="min-h-touch text-marca flex shrink-0 items-center px-2 text-base font-semibold"
+          >
+            Editar %
+          </Link>
+        ) : null}
+      </header>
+
+      {/* Vacío en un mes cerrado: ver `ListaVista.reparto`. */}
+      <BarraDeReparto partes={lista.reparto} />
+
+      <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">
+        {lista.gastos.map((g) => (
+          <li key={g.id}>
+            <Link
+              href={`/gastos/${g.id}`}
+              className="active:bg-superficie-alta flex flex-col gap-1 p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-tinta min-w-0 flex-1 text-base font-medium">{g.nombre}</span>
+                <span className="flex shrink-0 items-center gap-2">
+                  <Monto monto={g.monto} />
+                  <ChipMoneda moneda={g.moneda} />
+                </span>
+              </div>
+              {/* La fecha de cobro es informativa y solo del admin: nadie paga
+                  un gasto suelto. */}
+              <DetalleDelGasto
+                gasto={g}
+                miPorcentajeVigente={miPorcentajeVigente}
+                algoMeToca={algoMeToca}
+                conFecha={esAdmin}
+              />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
 
 export default async function GastosPage({
   searchParams,
@@ -22,11 +157,17 @@ export default async function GastosPage({
 }) {
   const { mes } = await searchParams
   const { activa } = await contextoDeCasa()
-  const vista = await vistaDeGastos(mes)
+  const [vista, arrastres] = await Promise.all([vistaDeGastos(mes), vistaDeArrastres()])
 
   const esAdmin = activa.rol === 'admin'
   const cerrado = vista.periodo.estado === 'closed'
+  const editable = esAdmin && !cerrado
+  const mesCorto = nombreDeMes(vista.periodo.mes, { conAnio: false }).toLowerCase()
   const conGastos = vista.listas.filter((l) => l.gastos.length > 0)
+  // Una lista recién creada no tiene gastos, y antes no aparecía en ningún
+  // lado: ni para verla ni para ajustarle los porcentajes. Solo al admin y con
+  // el mes abierto, que es cuando se puede hacer algo con ella.
+  const sinGastos = editable ? vista.listas.filter((l) => l.gastos.length === 0) : []
 
   return (
     <div className="flex flex-col gap-5">
@@ -40,7 +181,7 @@ export default async function GastosPage({
       {/* Solo el admin agrega, y solo en un mes abierto. Al miembro no se le
           muestra apagado. Va sobre las tabs, como el alta de Compras: es lo que
           más se hace acá, y arriba empujaba los gastos fuera de la pantalla. */}
-      {esAdmin && !cerrado ? (
+      {editable ? (
         <AccionDePie>
           <div className="px-4 py-3">
             <Link
@@ -75,124 +216,57 @@ export default async function GastosPage({
         <ParDeMontos par={vista.miCargo} />
       </section>
 
-      {conGastos.length > 1 ? (
-        <details className="border-borde bg-superficie rounded-2xl border">
-          <summary className="min-h-touch text-tinta flex cursor-pointer items-center px-4 text-base font-medium">
-            Ampliar por lista
-          </summary>
-          <ul className="divide-borde-suave divide-y border-t border-borde-suave">
-            {conGastos.map((l) => (
-              <li key={l.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="text-tinta text-base">{l.nombre}</span>
-                <ParDeMontos par={l.miSubtotal} tamano="normal" />
-              </li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-
-      {/* Arrastre: saldo vivo de un mes cerrado, no una lista de gastos más. */}
-      {vista.arrastres.map((a) => (
-        <section
-          key={a.periodoId}
-          className="border-borde bg-superficie flex flex-col gap-2 rounded-2xl border p-4"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col">
-              <h2 className="text-tinta text-base font-semibold">
-                Arrastre de {nombreDeMes(a.mes, { conAnio: false }).toLowerCase()}
-              </h2>
-              <span className="text-tinta-suave text-sm">
-                {a.miembros} {a.miembros === 1 ? 'miembro debe' : 'miembros deben'}
-              </span>
-            </div>
-            <ParDeMontos par={a.monto} tamano="normal" />
-          </div>
-          <p className="text-tinta-suave text-sm">Se cobra junto con este mes.</p>
-          {/* La foto del cierre, solo si ya abonaron algo: sin esto el número
-              de arriba parece contradecir lo que se vio al cerrar el mes. */}
-          {a.alCerrar ? (
-            <p className="text-tinta-suave text-sm">
-              Al cerrarlo quedaban{' '}
-              {!isZero(a.alCerrar.CRC) ? <Monto monto={a.alCerrar.CRC} tamano="chico" /> : null}
-              {!isZero(a.alCerrar.CRC) && !isZero(a.alCerrar.USD) ? ' y ' : null}
-              {!isZero(a.alCerrar.USD) ? <Monto monto={a.alCerrar.USD} tamano="chico" /> : null}
-              {' '}· ya abonaron la diferencia.
-            </p>
-          ) : null}
-        </section>
-      ))}
-
       {conGastos.length === 0 ? (
         <section className="border-borde-suave flex flex-col gap-3 rounded-2xl border border-dashed p-5">
           <h2 className="text-tinta text-base font-semibold">
-            Todavía no hay gastos en {nombreDeMes(vista.periodo.mes, { conAnio: false }).toLowerCase()}
+            Todavía no hay gastos en {mesCorto}
           </h2>
           <p className="text-tinta-suave text-base">
-            {esAdmin
+            {editable
               ? 'Agregá el primero con el botón de abajo: se reparte solo según los porcentajes de su lista.'
-              : 'Cuando el admin agregue gastos, van a aparecer acá con lo que te toca.'}
+              : cerrado
+                ? 'Este mes cerró sin gastos.'
+                : 'Cuando el admin agregue gastos, van a aparecer acá con lo que te toca.'}
           </p>
         </section>
       ) : null}
 
+      {/* Las listas del mes van primero: es lo que se viene a ver a Gastos. */}
       {conGastos.map((lista) => (
-        <section key={lista.id} className="flex flex-col gap-2">
-          <header className="flex items-center justify-between gap-3">
-            <h2 className="text-tinta text-base font-semibold">{lista.nombre}</h2>
-            {/* Solo el admin reparte. Al miembro no se le muestra deshabilitado. */}
-            {esAdmin && !cerrado ? (
-              <Link
-                href={`/gastos/porcentajes/${lista.id}`}
-                className="min-h-touch text-marca flex items-center px-2 text-base font-semibold"
-              >
-                Editar %
-              </Link>
-            ) : null}
-          </header>
+        <SeccionDeLista
+          key={lista.id}
+          lista={lista}
+          miMembresia={activa.membershipId}
+          editable={editable}
+          esAdmin={esAdmin}
+        />
+      ))}
 
-          {/* Vacío en un mes cerrado: ver `ListaVista.reparto`. */}
-          <BarraDeReparto partes={lista.reparto} />
-
+      {sinGastos.length > 0 ? (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-tinta text-base font-semibold">
+            {conGastos.length > 0 ? `Sin gastos en ${mesCorto}` : 'Tus listas'}
+          </h2>
           <ul className="border-borde bg-superficie divide-borde-suave divide-y rounded-2xl border">
-            {lista.gastos.map((g) => (
-              <li key={g.id}>
+            {sinGastos.map((l) => (
+              <li key={l.id} className="flex items-center justify-between gap-3 py-1 pr-2 pl-4">
+                <span className="text-tinta min-w-0 text-base">{l.nombre}</span>
                 <Link
-                  href={`/gastos/${g.id}`}
-                  className="active:bg-superficie-alta flex flex-col gap-1 p-4"
+                  href={`/gastos/porcentajes/${l.id}`}
+                  aria-label={`Editar % de ${l.nombre}`}
+                  className="min-h-touch text-marca flex shrink-0 items-center px-2 text-base font-semibold"
                 >
-                <div className="flex items-start justify-between gap-3">
-                  <span className="text-tinta min-w-0 flex-1 text-base font-medium">
-                    {g.nombre}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    <Monto monto={g.monto} />
-                    <ChipMoneda moneda={g.moneda} />
-                  </span>
-                </div>
-                <p className="text-tinta-suave text-sm">
-                  {g.miPorcentaje !== null ? (
-                    <>
-                      {g.miPorcentaje}% · me toca{' '}
-                      <Monto monto={g.miCargo} tamano="chico" />
-                    </>
-                  ) : (
-                    'No te toca nada de este gasto'
-                  )}
-                </p>
-
-                {/* Informativo y solo para el admin: nadie paga un gasto suelto. */}
-                {g.fechaCobro && esAdmin ? (
-                  <p className="text-tinta-suave text-sm">
-                    Se cobra el {diaYMes(g.fechaCobro)}
-                  </p>
-                ) : null}
+                  Editar %
                 </Link>
               </li>
             ))}
           </ul>
         </section>
-      ))}
+      ) : null}
+
+      {/* Los meses cerrados que siguen debiendo tienen su pantalla. Acá, una
+          sola fila al pie: antes eran una tarjeta por mes ARRIBA de las listas. */}
+      <EntradaDeArrastre vista={arrastres} esAdmin={esAdmin} />
 
       {/* Lo que el admin usa poco va al final, en la misma fila secundaria que
           Compras usa para «Etiquetas» y «Tiendas». */}
